@@ -5,11 +5,11 @@
 The **bootstrap_envs.py** tool automates the setup and management of isolated Python environments for a collection of command-line scripts grouped by functionality. Each group resides in a separate subfolder, containing Python scripts along with optional dependency and Python version requirements. This utility:
 
 1. Identifies all subfolders (or specified subsets) under a root directory.  
-2. For each subfolder (group), sets up or updates a dedicated virtual environment for all python scripts.  
+2. For each subfolder (group), sets up or updates a dedicated virtual environment for all Python scripts.  
 3. Installs dependencies listed in a `requirements.txt` file (with optional auto-detection of missing third-party libraries).  
-4. Creates or updates bash wrapper scripts in a user-specified bin directory, enabling each Python script to be invoked by name from the command line.
+4. Creates or updates bash wrapper scripts in a user-specified bin directory, enabling each Python script to be invoked by name from the command line with its virtual environment automatically activated.
 
-This design avoids version conflicts between scripts, simplifies re-creating setups on new machines, and keeps a user’s global environment clean.
+This design avoids version conflicts between scripts, simplifies re-creating setups on new machines, and keeps a user’s global environment clean.  
 
 ---
 
@@ -25,10 +25,11 @@ This design avoids version conflicts between scripts, simplifies re-creating set
    Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment.
 
 4. **Optional Dependency Detection:**  
-   The tool can scan user scripts for import packages referencing third-party libraries, ensuring that `requirements.txt` have the required libraries (either suggesting or automatically appending missing libraries).
+   The tool can scan user scripts for import packages referencing third-party libraries, ensuring that `requirements.txt` has the required libraries (either suggesting or automatically appending missing libraries).
 
 5. **Python Version Control:**  
    By supporting per-group Python versions via a simple `python_version.txt` file, each group’s environment can match the version intended by the script author.
+
 ---
 
 ## 3. Folder Structure
@@ -39,10 +40,10 @@ The tool expects a root directory (specified via `--source`) containing one or m
 - An **optional `requirements.txt`** listing libraries to install in the group’s virtual environment. This is required for non-standard libraries and can be automatically created using `--missing-requirements`.  
 - An **optional `python_version.txt`** specifying the Python version for that group (overriding the fallback version).
 
-For example, if `--source` is set to `mytools/`, your structure might look like this:
+For example, if `--source` is set to `~/mytools`, your structure might look like this:
 
 ```
-mytools/
+~/mytools/
 ├── net_tools/
 │   ├── ping_helper.py
 │   ├── ip_lookup.py
@@ -58,7 +59,6 @@ Where:
 - `net_tools/` and `media_tools/` are group folders.
 - Each `.py` file becomes a standalone command once the script has generated its corresponding bash wrapper.
 - Each group can have its own dependencies and Python version requirements.
-
 
 ### Additional Notes on Configuration Files
 
@@ -85,11 +85,10 @@ Where:
 
   - Only use the version number (e.g., `3.8`, `3.11`).  
   - Do **not** include `python` (e.g., avoid `python3.9`), paths (e.g., `/usr/bin/python3.9`), or shell commands.  
-  - The specified version must be available on the system.  
+  - The specified version must be available on the system and discoverable (e.g., `python3.9` should work in shell).  
   - If not found, the tool will fall back to `--python-version` (if set), or the interpreter used to invoke `bootstrap_envs.py`. A warning will be logged in that case.
 
 ---
-
 
 ## 4. Command-Line Arguments
 
@@ -169,8 +168,9 @@ The tool will:
 
 2. **Resolve Python Version:**  
    - If a group subfolder has `python_version.txt`, parse that file’s contents as the Python version.  
+   - The specified version must be installed and discoverable on the system (e.g., `python3.9` must be callable).  
    - Otherwise, use the version specified by `--python-version`.  
-   - If `--python-version` is also not set, fall back to the interpreter running `bootstrap_envs.py`.
+   - If `--python-version` is not set, fall back to the interpreter running `bootstrap_envs.py`.
 
 3. **Create/Reuse Virtual Environment:**  
    - Create or reuse the environment in `<venv-root>/<group>/`.  
@@ -181,6 +181,7 @@ The tool will:
    - If `--missing-requirements` is `suggest` or `append`, detect third-party imports in `.py` files.  
      - **suggest**: Print any libraries missing from `requirements.txt`.  
      - **append**: Write them (unversioned) to the end of `requirements.txt`.  
+   - If `requirements.txt` is not found and `--missing-requirements` is not set, no dependencies will be installed.  
    - Install or upgrade these packages in the virtual environment.
 
 5. **Generate Bash Wrappers:**  
