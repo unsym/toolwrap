@@ -4,10 +4,10 @@
 
 The **bootstrap_envs.py** tool automates the setup and management of isolated Python environments for a collection of command-line scripts grouped by functionality. Each group resides in a separate subfolder, containing Python scripts along with optional dependency and Python version requirements. This utility:
 
-1. Identifies all subfolders (or specified subsets) under a root directory.  
-2. For each subfolder (group), sets up or updates a dedicated virtual environment for all Python scripts.  
+1. Identifies all relevant subfolders  (or specified subsets) under a root directory.  
+2. For each subfolder (group), sets up or updates a dedicated virtual environment for all Python scripts in that folder.  
 3. Installs dependencies listed in a `requirements.txt` file (with optional auto-detection of missing third-party libraries).  
-4. Creates or updates bash wrapper scripts in a user-specified bin directory, enabling each Python script to be invoked by name from the command line with its virtual environment automatically activated.
+4. Creates or updates bash wrapper scripts in a user-specified bin directory (Linux/Mac), enabling each Python script to be invoked by name from the command line with its virtual environment automatically activated.
 
 This design avoids version conflicts between scripts, simplifies re-creating setups on new machines, and keeps a user’s global environment clean.  
 
@@ -25,7 +25,7 @@ This design avoids version conflicts between scripts, simplifies re-creating set
    Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment.
 
 4. **Optional Dependency Detection:**  
-   The tool can scan user scripts for import packages referencing third-party libraries, ensuring that `requirements.txt` has the required libraries (either suggesting or automatically appending missing libraries).
+   The tool can scan user scripts for import packages referencing **third-party** libraries, ensuring that `requirements.txt` has the required libraries (either suggesting or automatically appending missing libraries).
 
 5. **Python Version Control:**  
    By supporting per-group Python versions via a simple `python_version.txt` file, each group’s environment can match the version intended by the script author.
@@ -34,11 +34,13 @@ This design avoids version conflicts between scripts, simplifies re-creating set
 
 ## 3. Folder Structure
 
-The tool expects a root directory (specified via `--source`) containing one or more subfolders. Each subfolder (“group”) should house related command-line scripts. For each group, you typically have:
+The tool expects a root directory (specified via `--source`) containing one or more **direct** subfolders. **Only the top-level subfolders** under that directory are considered separate groups by default (i.e., one level down). **If you intend to handle deeper nested folders, you must adjust or extend the logic accordingly.** Each group subfolder should house related command-line scripts. For each group, you typically have:
 
 - **One or more `.py` Python scripts** implementing individual command-line tools.  
 - An **optional `requirements.txt`** listing libraries to install in the group’s virtual environment. This is required for non-standard libraries and can be automatically created using `--missing-requirements`.  
 - An **optional `python_version.txt`** specifying the Python version for that group (overriding the fallback version).
+
+**If a subfolder contains no `.py` files, the tool will skip creating a virtual environment for that folder.**
 
 For example, if `--source` is set to `~/mytools`, your structure might look like this:
 
@@ -87,8 +89,7 @@ Where:
   - Only use the version number (e.g., `3.8`, `3.11`).  
   - Do **not** include `python` (e.g., avoid `python3.9`), paths (e.g., `/usr/bin/python3.9`), or shell commands.  
   - The specified version must be available on the system and discoverable (e.g., `python3.9` should work in shell).  
-  - If not found, the tool will fall back to `--python-version` (if set), or the interpreter used to invoke `bootstrap_envs.py`.  
-  - *A warning is logged if the specified version can’t be found.*
+  - If not found, a warning is logged, and the tool falls back to `--python-version` (if set) or else the interpreter used to invoke `bootstrap_envs.py`. The process continues; it does **not** abort.
 
 ---
 
@@ -103,11 +104,11 @@ python3 bootstrap_envs.py [OPTIONS]
 Available arguments:
 
 - **`--source`**  
-  **Description:** Root directory containing tool groups. Each subfolder is treated as a group.  
+  **Description:** Root directory containing tool groups. Each subfolder is treated as a group (one level deep).  
   **Default:** Current directory (`.`)
 
 - **`--bin`**  
-  **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here.  
+  **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here. Note: Assumes a Unix-like environment using bash shebangs.
   **Default:** `~/bin/`
 
 - **`--venv-root`**  
@@ -115,19 +116,19 @@ Available arguments:
   **Default:** `~/bin/.venvs/`
 
 - **`--python-version`**  
-  **Description:** Fallback Python version to use if a group does not specify one via `python_version.txt`.  
+  **Description:** Fallback Python version to use if a group does not specify one via `python_version.txt`, or if the specified version is unavailable on the system.  
   **Default:** Version of the Python interpreter used to run `bootstrap_envs.py`
 
 - **`--missing-requirements`**  
-  **Description:** Controls how the tool handles third-party packages that are imported in scripts but missing from `requirements.txt`.  
+  **Description:** Controls how the tool handles **third-party** packages that are imported in scripts but missing from `requirements.txt`. Standard library imports are ignored.  
   **Options:**  
-  - *(Omitted)* – Only installs what is already listed in `requirements.txt`  
-  - `suggest` – Prints any missing packages that should be added  
-  - `append` – Automatically appends missing package names (without versions) to `requirements.txt`
+  - *(Omitted)* – Only installs what is already listed in `requirements.txt`.  
+  - `suggest` – Prints any missing packages that should be added.  
+  - `append` – Automatically appends missing package names (without versions) to `requirements.txt`.
 
 - **`--recreate-all`**  
   **Description:** If specified, removes and recreates all virtual environments before reinstalling packages.  
-  **Default:** Not set (reuses existing environments)
+  **Default:** Not set (reuses existing environments if present)
 
 - **`--dry-run`**  
   **Description:** Simulates all actions (environment creation, dependency installation, wrapper generation) without performing them.  
@@ -167,13 +168,15 @@ The tool will:
 
 1. **Determine Groups to Process:**  
    - If `--include-groups` is provided (e.g., `net_tools,media_tools`), only those subfolders are processed.  
-   - Otherwise, process all subfolders in the `--source` directory.  
-   - *If a listed group doesn’t exist, a warning is logged.*
+   - Otherwise, process **all direct subfolders** in the `--source` directory.  
+   - *If a listed group does not exist, a warning is logged.*  
+   - **Folders with no `.py` files are skipped.**
 
 2. **Resolve Python Version:**  
    - If a group subfolder has `python_version.txt`, parse that file’s contents as the Python version.  
-   - If the system doesn’t have that version installed, log a warning and fall back to `--python-version` (if set), or to the interpreter running `bootstrap_envs.py`.  
-   - If `--python-version` is not set and no `python_version.txt` is provided, default to the interpreter running the script.
+   - If the system doesn’t have that version installed or discoverable, log a warning and fall back to `--python-version` (if set), or to the interpreter running `bootstrap_envs.py`.  
+   - If `--python-version` is not set and no `python_version.txt` is provided, default to the interpreter running the script.  
+   - **In all cases, the script continues; it does not abort on version mismatch.**
 
 3. **Create/Reuse Virtual Environment:**  
    - Create or reuse the environment in `<venv-root>/<group>/`.  
@@ -181,11 +184,11 @@ The tool will:
 
 4. **Install Dependencies:**  
    - Read the group’s `requirements.txt` (if present).  
-   - If `--missing-requirements` is `suggest` or `append`, detect third-party imports in `.py` files.  
+   - If `--missing-requirements` is `suggest` or `append`, the tool scans `.py` files for **third-party** imports (e.g., `import requests`, `import numpy as np`). **Standard library imports are ignored.**  
      - **suggest**: Print any libraries missing from `requirements.txt`.  
      - **append**: Write them (unversioned) to the end of `requirements.txt`.  
    - If `requirements.txt` is not found and `--missing-requirements` is not set, no dependencies will be installed.  
-   - Install or upgrade these packages in the virtual environment. *The tool does not remove any packages even if they aren’t imported by the script.*
+   - Install or upgrade these packages in the virtual environment. The tool does **not** remove any listed packages, even if they’re not imported in the scripts.
 
 5. **Generate Bash Wrappers:**  
    - For each `.py` file in the group folder, create a shell script in `--bin`:
@@ -193,20 +196,24 @@ The tool will:
      - Shebang: `#!/usr/bin/env bash`  
      - Activates the environment, then invokes the `.py` file with all CLI arguments passed along.  
    - Make each wrapper executable (`chmod +x`).  
-   - *If multiple scripts across groups share the same filename, the user must rename them to avoid collisions.*
+   - **If another group has a `.py` file with the same name, a collision will occur, and the process will stop with error. The user is responsible for renaming scripts as needed to avoid overwriting wrappers.**  
 
-6. **Cleanup Unused Environments:**  
-   - (Optional) Remove any virtual environments under `--venv-root` that correspond to groups no longer present in `--source`. This step helps keep the environment directory tidy, but the user may choose not to run it automatically.  
+6. **Cleanup Unused Environments (Optional):**  
+   - If desired, remove any virtual environments under `--venv-root` that correspond to groups no longer present in `--source`.
    - *If `--recreate-all` is given, existing environments for the included groups are removed before being recreated.*
 
 7. **Logging:**  
-   - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log`, with a timestamp, group name, and a short description of the action (e.g., “CREATED ENV,” “INSTALLED PACKAGES,” “WARNING: Missing version fallback”).  
-   - *This ensures consistent, trackable logs for troubleshooting.*
+   - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log` with a timestamp, group name, and short description (e.g., “CREATED ENV,” “INSTALLED PACKAGES,” “WARNING: Missing version fallback”).  
+   - **The file is append-only and may grow over time.** Users may periodically clear or rotate it if desired.
 
 8. **Dry Run Mode (`--dry-run`):**  
-   - Enumerates actions (environment creation, installation, wrapper generation) without performing them.  
-   - Output includes which environments *would* be created, which dependencies *would* be installed, which potential missing dependencies, etc.
+   - Enumerates actions (environment creation, installation, wrapper generation) **without** performing them.  
+   - Output includes which environments *would* be created, which dependencies *would* be installed, and which are potentially missing.
 
 9. **Summary Output:**  
-   - On completion (or dry run), a summary lists new or updated environments, wrapper scripts, added/removed dependencies, and any problems encountered (e.g., missing Python versions).  
-   - This helps confirm the final state of the tool.
+   - On completion (or dry run), a summary lists:  
+     - New or updated environments  
+     - Generated wrapper scripts  
+     - Added/removed dependencies  
+     - **Skipped groups** (e.g., no `.py` found, not in `--include-groups`)  
+     - Any problems encountered (e.g., missing Python versions)  
