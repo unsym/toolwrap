@@ -2,161 +2,176 @@
 
 ## 1. Overview and Purpose
 
-The **bootstrap_envs.py** tool is designed to automate the setup and management of isolated Python environments for a collection of personal command-line scripts grouped by functionality. Rather than maintaining all tools and their dependencies in a single global environment, this utility organizes scripts into functional groups, creates separate virtual environments for each group, detects missing dependencies, and generates executable bash wrappers. This approach ensures consistency across multiple machines, minimizes dependency conflicts, and provides ease of use when invoking tools from the command line.
+The **bootstrap_envs.py** tool automates the setup and management of isolated Python environments for a collection of command-line scripts grouped by functionality. Each group resides in a separate subfolder, containing Python scripts along with optional dependency and Python version requirements. This utility:
+
+1. Identifies all subfolders (or specified subsets) under a root directory.  
+2. For each subfolder (group), sets up or updates a dedicated virtual environment for all python scripts.  
+3. Installs dependencies listed in a `requirements.txt` file (with optional auto-detection of missing third-party libraries).  
+4. Creates or updates bash wrapper scripts in a user-specified bin directory, enabling each Python script to be invoked by name from the command line.
+
+This design avoids version conflicts between scripts, simplifies re-creating setups on new machines, and keeps a user’s global environment clean.
+
+---
 
 ## 2. Rationale
 
-- **Isolation of Dependencies:** Each group of tools requires its own isolated Python environment to avoid conflicts between packages and allow for version management per group.
-- **Portability and Repeatability:** With environments automatically created and maintained outside the source repository, the system can be easily cloned and set up on a different computer.
-- **Ease of Execution:** Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the virtual environment.
-- **Automated Dependency Management (Optional):** The system treats `requirements.txt` as defined by the user. However, it provides options to detect all third-party libraries used in the group’s scripts and suggest (or automatically append) any that are missing. This simplifies the creation of a starter `requirements.txt` for users unfamiliar with dependency management.
-- **Unaltered Local Environment:** By keeping virtual environments and generated bash wrappers outside the source tree (and excluding them from version control), the system remains clean and reproducible.
-- **Python Version Control:** Each tool group may use a different Python version. A `python_version.txt` file can be provided per group to specify the desired version. If not present, a default Python version (provided via command-line or inferred from the environment) is used.
+1. **Dependency Isolation:**  
+   Each group’s Python virtual environment is kept separate, preventing package conflicts when scripts rely on different or incompatible libraries.
+
+2. **Portability and Reproducibility:**  
+   Because the tool manages creation and maintenance of virtual environments and wrappers, the structure can be cloned, re-bootstrapped, and run on any machine without manual environment activation.
+
+3. **Wrapper Convenience:**  
+   Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment.
+
+4. **Optional Dependency Detection:**  
+   The tool can scan user scripts for import packages referencing third-party libraries, ensuring that `requirements.txt` have the required libraries (either suggesting or automatically appending missing libraries).
+
+5. **Python Version Control:**  
+   By supporting per-group Python versions via a simple `python_version.txt` file, each group’s environment can match the version intended by the script author.
+
+---
 
 ## 3. Folder Structure
 
-The tool expects to operate on a directory such as `~/mytools/`, which contains groups of Python scripts organized by functionality. Each group may have its own `requirements.txt` and optional `python_version.txt`.
+The tool expects a root directory (specified via `--source`) containing one or more subfolders. Each subfolder (“group”) should house related command-line scripts. For each group, you typically have:
 
-**Example folder structure:**
+- **One or more `.py` python scripts** implementing individual command-line tools.  
+- An **optional `requirements.txt`** listing libraries to install in the group’s virtual environment.     Required for non-standard library. It can be automatically created using `--missing-requirement`.
+- An **optional `python_version.txt`** specifying the Python version for that group (overriding the fallback version).
+
+For example, if `--source` is set to `mytools/`, your structure might look like this:
+
 ```
-~/mytools/                      # Root of the personal command-line tools repository
-├── tools/                      # Source folder containing the grouped tools
-│   ├── net_tools/              # Group for network-related tools
-│   │   ├── ping_helper.py
-│   │   ├── ip_lookup.py
-│   │   ├── requirements.txt
-│   │   └── python_version.txt  # Optional: specific Python version
-│   ├── media_tools/            # Group for media processing tools
-│   │   ├── resize_img.py
-│   │   └── requirements.txt
-│   └── ...                     # Additional groups as necessary
-└── .gitignore                  # Configured to exclude generated virtual environments and bin wrappers
+mytools/
+├── net_tools/
+│   ├── ping_helper.py
+│   ├── ip_lookup.py
+│   ├── requirements.txt
+│   └── python_version.txt
+├── media_tools/
+│   ├── resize_img.py
+│   └── requirements.txt
+└── ...
 ```
 
-**Directory for Generated Artifacts:**
+Where:
+- `net_tools/` and `media_tools/` are group folders.
+- Each `.py` file becomes a standalone command once the script has generated its corresponding bash wrapper.
+- Each group can have its own dependencies and Python version requirements.
 
-- **Bash wrappers:** `~/bin/`  
-  Each tool will have a launcher shell script placed in `~/bin/` (e.g., `ping_helper`, `resize_img`). These scripts are generated with a `#!/usr/bin/env bash` shebang and marked as executable (`chmod +x`).
+---
 
-- **Virtual environments:** `~/bin/.venvs/`  
-  For each group in `tools/`, a separate virtual environment will be created in a subdirectory, for example:
-  ```
-  ~/bin/.venvs/net_tools/
-  ~/bin/.venvs/media_tools/
-  ```
 
-- **Log file:** `~/bin/.venvs/bootstrap_envs.log`  
-  All actions, such as environment creation, dependency installs, wrapper generation, and errors, are appended to a persistent log.
+## 4. Command-Line Arguments
 
-## 4. Examples of Tools and Binaries
+The script can be run as:
 
-### Example: Network Tools Group
-- **Source Files:**  
-  `~/mytools/tools/net_tools/ping_helper.py`, `~/mytools/tools/net_tools/ip_lookup.py`
-  
-- **Generated Virtual Environment:**  
-  `~/bin/.venvs/net_tools/`
-  
-- **Generated Bash Wrappers in ~/bin/:**
-  - `~/bin/ping_helper` – A bash script that activates `~/bin/.venvs/net_tools/` and runs `~/mytools/tools/net_tools/ping_helper.py`
-  - `~/bin/ip_lookup` – A similar wrapper for `ip_lookup.py`
+```bash
+python3 bootstrap_envs.py [OPTIONS]
+```
 
-### Example: Media Tools Group
-- **Source Files:**  
-  `~/mytools/tools/media_tools/resize_img.py`  
-- **Generated Virtual Environment:**  
-  `~/bin/.venvs/media_tools/`
-- **Generated Bash Wrapper in ~/bin/:**
-  - `~/bin/resize_img` – A wrapper for `resize_img.py`
-
-## 5. Command-Line Arguments for bootstrap_envs.py
-
-The bootstrap utility will accept the following arguments, with the indicated default values:
+Available arguments:
 
 - **`--source`**  
-  **Description:** The root directory containing tool groups (e.g., `~/mytools/tools`).  
-  **Default:** Current directory.
+  **Description:** Root directory containing tool groups. Each subfolder is treated as a group.  
+  **Default:** Current directory (`.`)
 
 - **`--bin`**  
-  **Description:** The directory where bash wrapper scripts will be placed (e.g., `~/bin/`).  
+  **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here.  
   **Default:** `~/bin/`
 
 - **`--venv-root`**  
-  **Description:** The root directory where virtual environments will be created for each tool group (e.g., `~/bin/.venvs/`).  
+  **Description:** Directory under which virtual environments are created, one per group.  
   **Default:** `~/bin/.venvs/`
 
 - **`--python-version`**  
-  **Description:** Fallback Python version to use if a group does not define its own in `python_version.txt`.  
-  **Default:** The version used to invoke `bootstrap_envs.py`
+  **Description:** Fallback Python version to use if a group does not specify one via `python_version.txt`.  
+  **Default:** Version of the Python interpreter used to run `bootstrap_envs.py`
 
 - **`--missing-requirements`**  
-  **Description:** Manage handling of missing third-party imports not listed in `requirements.txt`.  
+  **Description:** Controls how the tool handles third-party packages that are imported in scripts but missing from `requirements.txt`.  
   **Options:**  
-    - Omitted: Only installs from `requirements.txt`  
-    - `suggest`: Prints suggested packages to add for each group  
-    - `append`: Appends missing packages (no version) to each group’s `requirements.txt`  
+  - *(Omitted)* – Only installs what is already listed in `requirements.txt`  
+  - `suggest` – Prints any missing packages that should be added  
+  - `append` – Automatically appends missing package names (without versions) to `requirements.txt`
 
 - **`--recreate-all`**  
-  **Description:** Recreate all virtual environments from scratch and reinstall dependencies.  
-  **Default:** Not set.
+  **Description:** If specified, removes and recreates all virtual environments before reinstalling packages.  
+  **Default:** Not set (reuses existing environments)
 
 - **`--dry-run`**  
-  **Description:** Show what actions would be performed without making any changes.  
-  **Default:** Not set.
+  **Description:** Simulates all actions (environment creation, dependency installation, wrapper generation) without performing them.  
+  **Default:** Not set
 
-## 6. Example Usage
+- **`--include-groups`**  
+  **Description:** Comma-separated list of specific group folder names to process (e.g., `net_tools,media_tools`).  
+  If omitted, all subfolders in `--source` are processed.  
+  **Default:** Not set (processes all groups)
+
+--- 
+
+## 5. Usage Example
 
 ```bash
-python3 ~/toolwrap/bootstrap_envs.py --source ~/mytools/tools --bin ~/bin --venv-root ~/bin/.venvs --missing-requirements append --recreate-all
+python3 bootstrap_envs.py \
+  --source ~/mytools \
+  --bin ~/bin \
+  --venv-root ~/bin/.venvs \
+  --missing-requirements append \
+  --recreate-all \
+  --include-groups net_tools,media_tools
 ```
 
-This will:
-- Process all tool groups in `~/mytools/tools/`
-- Append any detected missing packages to `requirements.txt`
-- Create (or recreate) virtual environments in `~/bin/.venvs/`
-- Generate executable bash wrapper scripts in `~/bin/`
+The tool will:
 
-## 7. Operational Workflow
+1. Look under `~/mytools` only at `net_tools` and `media_tools` (ignoring any other subfolders).  
+2. Remove any existing environments for these two groups, recreate them under `~/bin/.venvs/`, then install dependencies from each group’s `requirements.txt`.  
+3. Append any newly detected libraries to `requirements.txt` files.  
+4. Generate or overwrite bash wrappers in `~/bin/`.  
+5. Update `~/bin/.venvs/bootstrap_envs.log` with the details.
 
-1. **Group Processing:**  
-   The tool scans each subfolder under the `--source` directory. For each group:
-   - **Python Version Resolution:**  
-     - If `python_version.txt` exists, its version is used.
-     - Otherwise, the version is determined by `--python-version`, which default to the current interpreter.
-   
-   - **Dependency Detection:**  
-     - **Uses built-in or standard approaches** (e.g. AST parsing) **to list external imports** and to distinguish them from standard library modules.  
-     - Behavior depends on `--missing-requirements`:
-       - If omitted, dependencies are only installed from `requirements.txt`.
-       - If `suggest`, any extra packages are listed in the console.
-       - If `append`, extra packages are appended (no version pinning) at the end of the file.
+---
 
-   - **Virtual Environment Setup:**  
-     A virtual environment is created or reused at `--venv-root/<group>/`. **By default, the Python built-in `venv` module is used** (though `virtualenv` could be substituted if desired). If `--recreate-all` is passed, it is removed and recreated. Packages in `requirements.txt` are installed into the environment. That means without `--recreate-all`, only extra packaged will be installed.
+## 6. Operational Workflow
 
-   - **Wrapper Script Generation:**  
-     Each script in the group results in a bash wrapper (named after the script) in `--bin`. Scripts must have **unique names across all groups**, or the user is prompted to rename or rearrange them. The wrapper:
-     - Begins with `#!/usr/bin/env bash`
-     - Activates the appropriate virtual environment
-     - Executes the tool with forwarded arguments
-     - Is made executable (`chmod +x`)
+1. **Determine Groups to Process:**  
+   - If `--include-groups` is provided (e.g., `net_tools,media_tools`), only those subfolders are processed.  
+   - Otherwise, process all subfolders in the `--source` directory.
 
-2. **Cleanup:**  
-   - Removes any virtual environments under `--venv-root/` that no longer correspond to a tool group.
+2. **Resolve Python Version:**  
+   - If a group subfolder has `python_version.txt`, parse that file’s contents as the Python version.  
+   - Otherwise, use the version specified by `--python-version`.  
+   - If `--python-version` is also not set, fall back to the interpreter running `bootstrap_envs.py`.
 
-3. **Logging:**  
-   - All actions are logged in `--venv-root/bootstrap_envs.log`.
+3. **Create/Reuse Virtual Environment:**  
+   - Create or reuse the environment in `<venv-root>/<group>/`.  
+   - If `--recreate-all` is set, remove the existing folder before creation.
 
-4. **Dry Run:**  
-   - If `--dry-run` is specified, all operations are simulated and printed to the console, with no file system or environment changes.
+4. **Install Dependencies:**  
+   - Read the group’s `requirements.txt` (if present).  
+   - If `--missing-requirements` is `suggest` or `append`, detect third-party imports in `.py` files.  
+     - **suggest**: Print any libraries missing from `requirements.txt`.  
+     - **append**: Write them (unversioned) to the end of `requirements.txt`.  
+   - Install or upgrade these packages in the virtual environment.
 
-5. **Completion:**  
-   A summary is printed showing:
-   - New or updated virtual environments
-   - Generated wrapper scripts
-   - Dependency changes (if any)
-   - Any errors or conflicts
+5. **Generate Bash Wrappers:**  
+   - For each `.py` file in the group folder, create a shell script in `--bin`:
+     - Script name matches the `.py` filename (e.g., `ping_helper.py` → `ping_helper`).  
+     - Shebang: `#!/usr/bin/env bash`  
+     - Activates the environment, then invokes the `.py` file with all CLI arguments passed along.  
+   - Make each wrapper executable (`chmod +x`).  
+   - If multiple scripts share the same filename across different groups, the user must manually rename one before proceeding.
 
-## 8. Summary
+6. **Cleanup Unused Environments:**  
+   - (Optional) Remove any virtual environments under `--venv-root` corresponding to groups that no longer exist.  
+   - This step helps keep the environment directory tidy.
 
-The **bootstrap_envs.py** utility provides an automated mechanism to structure, set up, and maintain a personal collection of command-line tools. By isolating dependencies in separate virtual environments, supporting per-group Python versions, auto-detecting and managing dependencies, and generating executable wrappers, the system ensures a clean, portable, and reproducible environment for running individual tools from a centralized bin directory.
+7. **Logging:**  
+   - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log`, enabling troubleshooting.
+
+8. **Dry Run Mode (`--dry-run`):**  
+   - Enumerates actions (environment creation, installation, wrapper generation) without performing them.
+
+9. **Summary Output:**  
+   - On completion (or dry run), a summary lists new or updated environments, wrapper scripts, added/removed dependencies, and any problems encountered.
