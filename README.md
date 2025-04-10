@@ -29,15 +29,14 @@ This design avoids version conflicts between scripts, simplifies re-creating set
 
 5. **Python Version Control:**  
    By supporting per-group Python versions via a simple `python_version.txt` file, each group’s environment can match the version intended by the script author.
-
 ---
 
 ## 3. Folder Structure
 
 The tool expects a root directory (specified via `--source`) containing one or more subfolders. Each subfolder (“group”) should house related command-line scripts. For each group, you typically have:
 
-- **One or more `.py` python scripts** implementing individual command-line tools.  
-- An **optional `requirements.txt`** listing libraries to install in the group’s virtual environment.     Required for non-standard library. It can be automatically created using `--missing-requirement`.
+- **One or more `.py` Python scripts** implementing individual command-line tools.  
+- An **optional `requirements.txt`** listing libraries to install in the group’s virtual environment. This is required for non-standard libraries and can be automatically created using `--missing-requirements`.  
 - An **optional `python_version.txt`** specifying the Python version for that group (overriding the fallback version).
 
 For example, if `--source` is set to `mytools/`, your structure might look like this:
@@ -59,6 +58,35 @@ Where:
 - `net_tools/` and `media_tools/` are group folders.
 - Each `.py` file becomes a standalone command once the script has generated its corresponding bash wrapper.
 - Each group can have its own dependencies and Python version requirements.
+
+
+### Additional Notes on Configuration Files
+
+- **`requirements.txt`**  
+  This file should follow standard [pip-compatible format](https://pip.pypa.io/en/stable/reference/requirement-specifiers/), with one package per line. For example:
+
+  ```
+  requests
+  numpy>=1.20
+  pandas==1.3.5
+  Pillow!=9.0.0
+  ```
+
+  - Version specifiers such as `==`, `>=`, `<=`, `!=` are supported.
+  - Blank lines and comments (starting with `#`) are allowed.
+  - Avoid using editable installs (`-e .`) or VCS-based requirements (`git+https://...`) unless you explicitly support such setups. These are not handled by the auto-detection logic used with `--missing-requirements`.
+
+- **`python_version.txt`**  
+  This file should contain a **single line** specifying the desired Python version as a version string only. For example:
+
+  ```
+  3.9
+  ```
+
+  - Only use the version number (e.g., `3.8`, `3.11`).  
+  - Do **not** include `python` (e.g., avoid `python3.9`), paths (e.g., `/usr/bin/python3.9`), or shell commands.  
+  - The specified version must be available on the system.  
+  - If not found, the tool will fall back to `--python-version` (if set), or the interpreter used to invoke `bootstrap_envs.py`. A warning will be logged in that case.
 
 ---
 
