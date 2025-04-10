@@ -75,6 +75,7 @@ Where:
   - Version specifiers such as `==`, `>=`, `<=`, `!=` are supported.
   - Blank lines and comments (starting with `#`) are allowed.
   - Avoid using editable installs (`-e .`) or VCS-based requirements (`git+https://...`) unless you explicitly support such setups. These are not handled by the auto-detection logic used with `--missing-requirements`.
+  - *Clarification: Packages listed in `requirements.txt` are always installed, even if the tool’s auto-detection feature doesn’t find direct imports for them. The tool does **not** remove “unused” packages from `requirements.txt` nor change existing content, just append.*
 
 - **`python_version.txt`**  
   This file should contain a **single line** specifying the desired Python version as a version string only. For example:
@@ -86,7 +87,8 @@ Where:
   - Only use the version number (e.g., `3.8`, `3.11`).  
   - Do **not** include `python` (e.g., avoid `python3.9`), paths (e.g., `/usr/bin/python3.9`), or shell commands.  
   - The specified version must be available on the system and discoverable (e.g., `python3.9` should work in shell).  
-  - If not found, the tool will fall back to `--python-version` (if set), or the interpreter used to invoke `bootstrap_envs.py`. A warning will be logged in that case.
+  - If not found, the tool will fall back to `--python-version` (if set), or the interpreter used to invoke `bootstrap_envs.py`.  
+  - *A warning is logged if the specified version can’t be found.*
 
 ---
 
@@ -134,9 +136,10 @@ Available arguments:
 - **`--include-groups`**  
   **Description:** Comma-separated list of specific group folder names to process (e.g., `net_tools,media_tools`).  
   If omitted, all subfolders in `--source` are processed.  
-  **Default:** Not set (processes all groups)
+  **Default:** Not set (processes all groups)  
+  *If a specified group does not exist, the tool logs a warning and skips it.*
 
---- 
+---
 
 ## 5. Usage Example
 
@@ -164,13 +167,13 @@ The tool will:
 
 1. **Determine Groups to Process:**  
    - If `--include-groups` is provided (e.g., `net_tools,media_tools`), only those subfolders are processed.  
-   - Otherwise, process all subfolders in the `--source` directory.
+   - Otherwise, process all subfolders in the `--source` directory.  
+   - *If a listed group doesn’t exist, a warning is logged.*
 
 2. **Resolve Python Version:**  
    - If a group subfolder has `python_version.txt`, parse that file’s contents as the Python version.  
-   - The specified version must be installed and discoverable on the system (e.g., `python3.9` must be callable).  
-   - Otherwise, use the version specified by `--python-version`.  
-   - If `--python-version` is not set, fall back to the interpreter running `bootstrap_envs.py`.
+   - If the system doesn’t have that version installed, log a warning and fall back to `--python-version` (if set), or to the interpreter running `bootstrap_envs.py`.  
+   - If `--python-version` is not set and no `python_version.txt` is provided, default to the interpreter running the script.
 
 3. **Create/Reuse Virtual Environment:**  
    - Create or reuse the environment in `<venv-root>/<group>/`.  
@@ -182,7 +185,7 @@ The tool will:
      - **suggest**: Print any libraries missing from `requirements.txt`.  
      - **append**: Write them (unversioned) to the end of `requirements.txt`.  
    - If `requirements.txt` is not found and `--missing-requirements` is not set, no dependencies will be installed.  
-   - Install or upgrade these packages in the virtual environment.
+   - Install or upgrade these packages in the virtual environment. *The tool does not remove any packages even if they aren’t imported by the script.*
 
 5. **Generate Bash Wrappers:**  
    - For each `.py` file in the group folder, create a shell script in `--bin`:
@@ -190,17 +193,20 @@ The tool will:
      - Shebang: `#!/usr/bin/env bash`  
      - Activates the environment, then invokes the `.py` file with all CLI arguments passed along.  
    - Make each wrapper executable (`chmod +x`).  
-   - If multiple scripts share the same filename across different groups, the user must manually rename one before proceeding.
+   - *If multiple scripts across groups share the same filename, the user must rename them to avoid collisions.*
 
 6. **Cleanup Unused Environments:**  
-   - (Optional) Remove any virtual environments under `--venv-root` corresponding to groups that no longer exist.  
-   - This step helps keep the environment directory tidy.
+   - (Optional) Remove any virtual environments under `--venv-root` that correspond to groups no longer present in `--source`. This step helps keep the environment directory tidy, but the user may choose not to run it automatically.  
+   - *If `--recreate-all` is given, existing environments for the included groups are removed before being recreated.*
 
 7. **Logging:**  
-   - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log`, enabling troubleshooting.
+   - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log`, with a timestamp, group name, and a short description of the action (e.g., “CREATED ENV,” “INSTALLED PACKAGES,” “WARNING: Missing version fallback”).  
+   - *This ensures consistent, trackable logs for troubleshooting.*
 
 8. **Dry Run Mode (`--dry-run`):**  
-   - Enumerates actions (environment creation, installation, wrapper generation) without performing them.
+   - Enumerates actions (environment creation, installation, wrapper generation) without performing them.  
+   - Output includes which environments *would* be created, which dependencies *would* be installed, which potential missing dependencies, etc.
 
 9. **Summary Output:**  
-   - On completion (or dry run), a summary lists new or updated environments, wrapper scripts, added/removed dependencies, and any problems encountered.
+   - On completion (or dry run), a summary lists new or updated environments, wrapper scripts, added/removed dependencies, and any problems encountered (e.g., missing Python versions).  
+   - This helps confirm the final state of the tool.
