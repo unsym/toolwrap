@@ -75,7 +75,7 @@ The bootstrap utility will accept the following arguments, with the indicated de
 
 - **`--source`**  
   **Description:** The root directory containing tool groups (e.g., `~/mytools/tools`).  
-  **Default:** Current directory, or a required argument if not in the root repository folder.
+  **Default:** Current directory.
 
 - **`--bin`**  
   **Description:** The directory where bash wrapper scripts will be placed (e.g., `~/bin/`).  
@@ -122,18 +122,17 @@ This will:
    The tool scans each subfolder under the `--source` directory. For each group:
    - **Python Version Resolution:**  
      - If `python_version.txt` exists, its version is used.
-     - Otherwise, the version is determined by `--python-version`, or defaults to the current interpreter.
+     - Otherwise, the version is determined by `--python-version`, which default to the current interpreter.
    
    - **Dependency Detection:**  
-     - Parses Python files in the folder for third-party imports.
-     - Skips standard library modules.
+     - **Uses built-in or standard approaches** (e.g. AST parsing) **to list external imports** and to distinguish them from standard library modules.  
      - Behavior depends on `--missing-requirements`:
        - If omitted, dependencies are only installed from `requirements.txt`.
        - If `suggest`, any extra packages are listed in the console.
        - If `append`, extra packages are appended (no version pinning) at the end of the file.
 
    - **Virtual Environment Setup:**  
-     A virtual environment is created or reused at `--venv-root/<group>/`. If `--recreate-all` is passed, it is removed and recreated. Packages in `requirements.txt` are installed into the environment.
+     A virtual environment is created or reused at `--venv-root/<group>/`. **By default, the Python built-in `venv` module is used** (though `virtualenv` could be substituted if desired). If `--recreate-all` is passed, it is removed and recreated. Packages in `requirements.txt` are installed into the environment. That means without `--recreate-all`, only extra packaged will be installed.
 
    - **Wrapper Script Generation:**  
      Each script in the group results in a bash wrapper (named after the script) in `--bin`. Scripts must have **unique names across all groups**, or the user is prompted to rename or rearrange them. The wrapper:
