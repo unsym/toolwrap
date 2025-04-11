@@ -198,9 +198,8 @@ The tool will:
    - Make each wrapper executable (`chmod +x`).  
    - **If another group has a `.py` file with the same name, a collision will occur, and the process will stop with error. The user is responsible for renaming scripts as needed to avoid overwriting wrappers.**  
 
-6. **Cleanup Unused Environments (Optional):**  
-   - If desired, remove any virtual environments under `--venv-root` that correspond to groups no longer present in `--source`.
-   - *If `--recreate-all` is given, existing environments for the included groups are removed before being recreated.*
+6. **Cleanup Unused Environments (Optional):**
+   - *If `--recreate-all` is given, existing environments under `--venv-root` for the included groups are removed before being recreated.*
 
 7. **Logging:**  
    - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log` with a timestamp, group name, and short description (e.g., “CREATED ENV,” “INSTALLED PACKAGES,” “WARNING: Missing version fallback”).  
