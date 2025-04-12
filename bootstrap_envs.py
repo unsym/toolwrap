@@ -21,6 +21,7 @@ import argparse
 import ast
 import importlib.util
 import logging
+import re
 import os
 import platform
 import shlex
