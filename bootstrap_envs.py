@@ -671,7 +671,7 @@ def main() -> None:
         raise BootstrapError(error_msg)
     else:
         logging.info("Bootstrap process completed successfully.")
-        sys.exit(0)
+        return
 
 
 if __name__ == "__main__":
@@ -680,15 +680,10 @@ if __name__ == "__main__":
     except BootstrapError as e:
         logging.error("Critical error encountered:")
         logging.error(e)
-        if "--dry-run" not in sys.argv:
-            sys.exit(1)
-        else:
-            logging.info("Dry-run mode active: Not aborting process despite the critical error.")
+        sys.exit(1)
     except Exception as e:
         logging.exception("An unexpected error occurred:")
-        if "--dry-run" not in sys.argv:
-            sys.exit(1)
+        sys.exit(1)
     else:
         logging.info("Bootstrap process completed successfully.")
-        if "--dry-run" not in sys.argv:
-            sys.exit(0)
+        sys.exit(0)
