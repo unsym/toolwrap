@@ -612,8 +612,9 @@ def main() -> None:
             wrapper_path = bin_dir / wrapper_name
             if wrapper_name in generated_wrapper_targets:
                 conflict = generated_wrapper_targets[wrapper_name]
-                logging.error(f"Wrapper collision: '{wrapper_name}' already exists for group '{conflict.parent.name}'. Aborting.")
-                sys.exit(1)
+                error_msg = f"Wrapper collision: '{wrapper_name}' already exists for group '{conflict.parent.name}'. Aborting."
+                logging.error(error_msg)
+                raise BootstrapError(error_msg)
             if create_bash_wrapper(wrapper_path, venv_path, py_file, args.dry_run):
                 generated_wrapper_targets[wrapper_name] = py_file
                 try:
