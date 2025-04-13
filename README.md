@@ -25,7 +25,7 @@ This design avoids version conflicts between scripts, simplifies re-creating set
    Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment.
 
 4. **Optional Dependency Detection:**  
-   The tool can scan user scripts for import packages referencing **third-party** libraries, ensuring that `requirements.txt` has the required libraries (either suggesting or automatically appending missing libraries).
+   The tool performs a basic scan of user scripts for simple static import statements referencing **third-party** libraries. This approach may not catch dynamic or conditional imports, but it is sufficient as an assistive measure to help ensure that `requirements.txt` includes the most common dependencies. It can optionally suggest missing dependencies or automatically append them.
 
 5. **Python Version Control:**  
    By supporting per-group Python versions via a simple `python_version.txt` file, each group’s environment can match the version intended by the script author.
