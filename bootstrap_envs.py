@@ -360,6 +360,20 @@ def install_dependencies(venv_path: Path, req_file: Path, dry_run: bool) -> bool
         return True
 
 
+def check_duplicate_wrappers(target_groups: List[Path]) -> dict:
+    duplicate_wrappers = {}
+    for group in target_groups:
+        py_files = list(group.glob("*.py"))
+        for py_file in py_files:
+            wrapper_name = py_file.stem
+            if wrapper_name in duplicate_wrappers:
+                duplicate_wrappers[wrapper_name].append(group.name)
+            else:
+                duplicate_wrappers[wrapper_name] = [group.name]
+    collisions = {name: groups for name, groups in duplicate_wrappers.items() if len(groups) > 1}
+    return collisions
+
+
 # --- Main Bootstrap Process ---
 
 def main() -> None:
@@ -433,6 +447,13 @@ def main() -> None:
 
     if not target_groups:
         logging.error("No valid group folders found. Aborting.")
+        sys.exit(1)
+    
+    collisions = check_duplicate_wrappers(target_groups)
+    if collisions:
+        logging.error("Detected duplicate wrapper names across groups:")
+        for name, groups in collisions.items():
+            logging.error(f"Wrapper '{name}' found in groups: {', '.join(groups)}")
         sys.exit(1)
 
     fallback_version_str = args.python_version or f"{sys.version_info.major}.{sys.version_info.minor}"
