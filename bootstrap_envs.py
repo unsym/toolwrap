@@ -431,11 +431,13 @@ def main() -> None:
                 try:
                     dir_path.mkdir(parents=True, exist_ok=True)
                 except OSError as e:
-                    logging.error(f"Failed to create {dir_path}: {e}")
-                    sys.exit(1)
+                    error_msg = f"Failed to create directory {dir_path}: {e}"
+                    logging.error(error_msg)
+                    raise BootstrapError(error_msg)
         elif not dir_path.is_dir():
-            logging.error(f"Path exists but is not a directory: {dir_path}")
-            sys.exit(1)
+            error_msg = f"Path exists but is not a directory: {dir_path}"
+            logging.error(error_msg)
+            raise BootstrapError(error_msg)
 
     # Identify group folders
     all_subdirs = [d for d in source_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
@@ -454,8 +456,9 @@ def main() -> None:
         target_groups = all_subdirs
 
     if not target_groups:
-        logging.error("No valid group folders found. Aborting.")
-        sys.exit(1)
+        error_msg = "No valid group folders found."
+        logging.error(error_msg)
+        raise BootstrapError(error_msg)
     
     collisions = check_duplicate_wrappers(target_groups)
     if collisions:
@@ -655,8 +658,9 @@ def main() -> None:
         logging.info("No wrappers generated.")
     logging.info(f"Log file located at: {log_file}")
     if encountered_errors:
-        logging.error("Bootstrap process completed with errors. Review the logs above.")
-        sys.exit(1)
+        error_msg = "Bootstrap process completed with errors. Review the logs above."
+        logging.error(error_msg)
+        raise BootstrapError(error_msg)
     else:
         logging.info("Bootstrap process completed successfully.")
         sys.exit(0)
