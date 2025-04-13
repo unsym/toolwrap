@@ -612,16 +612,15 @@ def main() -> None:
         else:
             logging.info(f"No requirements file or packages to install for group '{group_name}'.")
 
-        # Generate bash wrappers and check for collisions
+        # Generate bash wrappers and handle collisions by skipping them
         logging.info("Generating bash wrappers for Python scripts...")
         for py_file in py_files:
             wrapper_name = py_file.stem
             wrapper_path = bin_dir / wrapper_name
             if wrapper_name in generated_wrapper_targets:
                 conflict = generated_wrapper_targets[wrapper_name]
-                error_msg = f"Wrapper collision: '{wrapper_name}' already exists for group '{conflict.parent.name}'. Aborting."
-                logging.error(error_msg)
-                raise BootstrapError(error_msg)
+                logging.warning(f"Wrapper collision: '{wrapper_name}' already exists for group '{conflict.parent.name}'. Skipping generation for group '{group_name}'.")
+                continue
             if create_bash_wrapper(wrapper_path, venv_path, py_file, args.dry_run):
                 generated_wrapper_targets[wrapper_name] = py_file
                 try:
