@@ -148,8 +148,8 @@ Available arguments:
 ```bash
 python3 bootstrap_envs.py \
   --source ~/mytools \
-  --bin ~/bin \
-  --venv-root ~/bin/.venvs \
+  --bin ~/bin/mytools \
+  --venv-root ~/bin/mytools/.venvs \
   --missing-requirements append \
   --recreate-all \
   --include-groups net_tools,media_tools
@@ -158,10 +158,10 @@ python3 bootstrap_envs.py \
 The tool will:
 
 1. Look under `~/mytools` only at `net_tools` and `media_tools` (ignoring any other subfolders).  
-2. Remove any existing environments for these two groups, recreate them under `~/bin/.venvs/`, then install dependencies from each group’s `requirements.txt`.  
+2. Remove any existing environments for these two groups, recreate them under `~/bin/mytools/.venvs/`, then install dependencies from each group’s `requirements.txt`.  
 3. Append any newly detected libraries to `requirements.txt` files.  
-4. Generate or overwrite bash wrappers in `~/bin/`.  
-5. Update `~/bin/.venvs/bootstrap_envs.log` with the details.
+4. Generate or overwrite bash wrappers in `~/bin/mytools`.  
+5. Update `~/bin/mytools/.venvs/bootstrap_envs.log` with the details.
 
 ---
 
