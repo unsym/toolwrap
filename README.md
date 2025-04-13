@@ -107,13 +107,14 @@ Available arguments:
   **Description:** Root directory containing tool groups. Each subfolder is treated as a group (one level deep).  
   **Default:** Current directory (`.`)
 
-- **`--bin`**  
-  **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here. Note: Assumes a Unix-like environment using bash shebangs.
-  **Default:** `~/bin/`
+-- **`--bin`**  
+  **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here. Default is the `bin/` folder under the source directory.
+  **Default:** `bin/`
 
 - **`--venv-root`**  
-  **Description:** Directory under which virtual environments are created, one per group.  
-  **Default:** `~/bin/.venvs/`
+-- **`--venv-root`**  
+  **Description:** Directory under which virtual environments are created. Default is the `.venv` folder inside the bin directory.
+  **Default:** `<source>/bin/.venv` (if --bin is not overridden)
 
 - **`--python-version`**  
   **Description:** Fallback Python version to use if a group does not specify one via `python_version.txt`, or if the specified version is unavailable on the system.  

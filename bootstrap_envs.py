@@ -35,8 +35,6 @@ from typing import Dict, List, Optional, Set, Tuple
 
 # --- Configuration ---
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-DEFAULT_BIN_DIR = Path.home() / "bin"
-DEFAULT_VENV_ROOT = Path.home() / "bin" / ".venvs"
 LOG_FILENAME = "bootstrap_envs.log"
 PYTHON_VERSION_FILENAME = "python_version.txt"
 REQUIREMENTS_FILENAME = "requirements.txt"
@@ -390,10 +388,10 @@ def main() -> None:
     )
     parser.add_argument("--source", type=Path, default=Path("."),
                         help="Root directory containing tool groups (subfolders).")
-    parser.add_argument("--bin", type=Path, default=DEFAULT_BIN_DIR,
-                        help="Directory to place generated bash wrapper scripts.")
-    parser.add_argument("--venv-root", type=Path, default=DEFAULT_VENV_ROOT,
-                        help="Directory under which virtual environments are created.")
+    parser.add_argument("--bin", type=Path, default=Path("bin"),
+                        help="Directory to place generated bash wrapper scripts. Default is the 'bin' folder under the source directory.")
+    parser.add_argument("--venv-root", type=Path, default=None,
+                        help="Directory under which virtual environments are created. Default is the '.venv' folder inside the bin directory.")
     parser.add_argument("--python-version", type=str, default=None,
                         help="Fallback Python version (e.g., '3.9') if not specified in group.")
     parser.add_argument("--missing-requirements", choices=["suggest", "append"], default=None,
@@ -409,8 +407,17 @@ def main() -> None:
     args = parser.parse_args()
 
     source_dir = args.source.expanduser().resolve()
-    bin_dir = args.bin.expanduser().resolve()
-    venv_root_dir = args.venv_root.expanduser().resolve()
+    if not args.bin.is_absolute():
+        bin_dir = (source_dir / args.bin).resolve()
+    else:
+        bin_dir = args.bin.resolve()
+
+    if args.venv_root is None:
+        venv_root_dir = (bin_dir / ".venv").resolve()
+    elif not args.venv_root.is_absolute():
+        venv_root_dir = (source_dir / args.venv_root).resolve()
+    else:
+        venv_root_dir = args.venv_root.resolve()
     log_file = venv_root_dir / LOG_FILENAME
 
     setup_logging(log_file, args.dry_run)
