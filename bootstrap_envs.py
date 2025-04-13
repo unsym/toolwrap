@@ -536,7 +536,9 @@ def main() -> None:
                     logging.info(f"[APPEND] Appending missing packages to {requirements_file}: {missing_str}.")
                     if not args.dry_run:
                         try:
-                            requirements_file.parent.mkdir(parents=True, exist_ok=True)
+                            if not requirements_file.exists():
+                                requirements_file.parent.mkdir(parents=True, exist_ok=True)
+                                requirements_file.write_text("", encoding="utf-8")
                             with open(requirements_file, "a", encoding="utf-8") as f:
                                 f.write("\n# --- Auto-appended by bootstrap_envs.py ---\n")
                                 for pkg in sorted(missing_pkgs):
@@ -550,7 +552,7 @@ def main() -> None:
                 logging.info("No missing third-party imports detected.")
 
         # Upgrade pip before installing dependencies
-        if requirements_file.is_file() and installed_packages:
+        if requirements_file.is_file():
             logging.info(f"Upgrading pip in venv at {venv_path}...")
             upgrade_cmd = [str(venv_pip), "install", "--upgrade", "pip"]
             success_upgrade, _, _ = run_command(upgrade_cmd, dry_run=args.dry_run)
