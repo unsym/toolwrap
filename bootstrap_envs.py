@@ -591,28 +591,12 @@ def main() -> None:
                 logging.info("No missing third-party imports detected.")
 
         # Upgrade pip before installing dependencies
-        if requirements_file.is_file():
-            logging.info(f"Upgrading pip in venv at {venv_path}...")
-            upgrade_cmd = [str(venv_pip), "install", "--upgrade", "pip"]
-            success_upgrade, _, _ = run_command(upgrade_cmd, dry_run=args.dry_run)
-            if success_upgrade and not args.dry_run:
-                summary_actions["pip_upgraded"].append(group_name)
-            else:
-                logging.error(f"Failed to upgrade pip for group '{group_name}'.")
-                encountered_errors = True
-
-            logging.info(f"Installing dependencies for group '{group_name}' from {requirements_file}...")
-            install_cmd = [str(venv_pip), "install", "-r", str(requirements_file)]
-            success_install, _, _ = run_command(install_cmd, dry_run=args.dry_run)
-            if success_install:
-                summary_actions["deps_installed"].append(group_name)
-            else:
-                logging.error(f"Dependency installation failed for {group_name}.")
-                encountered_errors = True
+        if not install_dependencies(venv_path, requirements_file, args.dry_run):
+            logging.error(f"Dependency installation failed for group '{group_name}'.")
+            encountered_errors = True
         else:
-            logging.info(f"No requirements file or packages to install for group '{group_name}'.")
-
-        # Generate bash wrappers and handle collisions by skipping them
+            summary_actions["deps_installed"].append(group_name)
+        # Generate bash wrappers for Python scripts, handling duplicate names by skipping duplicates.
         logging.info("Generating bash wrappers for Python scripts...")
         for py_file in py_files:
             wrapper_name = py_file.stem
