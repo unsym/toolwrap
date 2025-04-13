@@ -197,7 +197,7 @@ The tool will:
      - Shebang: `#!/usr/bin/env bash`  
      - Activates the environment, then invokes the `.py` file with all CLI arguments passed along.  
    - Make each wrapper executable (`chmod +x`).  
-   - **Before performing any actions, the tool checks for duplicate wrapper names across all groups. If any duplicates are found, the conflicting wrappers are skipped and a warning is logged, requiring the user to manually resolve the naming conflict.**  
+   - **Before generating bash wrappers, the tool handles duplicate wrapper names by skipping the generation for any group that conflicts with an already generated wrapper. A warning is logged instructing the user to manually rename the conflicting source .py files to ensure unique wrapper names.**  
 
 6. **Cleanup Unused Environments (Optional):**
    - *If `--recreate-all` is given, existing environments under `--venv-root` for the included groups are removed before being recreated.*
