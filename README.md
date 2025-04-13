@@ -141,6 +141,10 @@ Available arguments:
   **Default:** Not set (processes all groups)  
   *If a specified group does not exist, the tool logs a warning and skips it.*
 
+ - **`--verbose`**  
+   **Description:** Increase output verbosity. When enabled, the tool outputs detailed debug-level logs.  
+   **Default:** Not enabled (INFO level logging)
+
 ---
 
 ## 5. Usage Example

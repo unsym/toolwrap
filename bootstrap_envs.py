@@ -49,9 +49,9 @@ class BootstrapError(Exception):
 
 # --- Helper Functions ---
 
-def setup_logging(log_file_path: Path, dry_run: bool):
+def setup_logging(log_file_path: Path, dry_run: bool, verbose: bool = False):
     """Configures logging to file and console."""
-    log_level = logging.INFO
+    log_level = logging.DEBUG if verbose else logging.INFO
     log_file_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure log dir exists
 
     console_formatter = logging.Formatter(
@@ -403,6 +403,8 @@ def main() -> None:
     parser.add_argument("--include-groups", type=str, default=None,
                         help=("Comma-separated list of specific group folder names to process. "
                               "If omitted, all direct subfolders are processed."))
+    parser.add_argument("--verbose", action="store_true",
+                        help="Increase output verbosity (DEBUG level logging).")
 
     args = parser.parse_args()
 
@@ -420,7 +422,7 @@ def main() -> None:
         venv_root_dir = args.venv_root.resolve()
     log_file = venv_root_dir / LOG_FILENAME
 
-    setup_logging(log_file, args.dry_run)
+    setup_logging(log_file, args.dry_run, args.verbose)
     logging.info("--- Starting Bootstrap Environments ---")
     logging.info(f"Source: {source_dir}, Bin: {bin_dir}, Venv Root: {venv_root_dir}")
     logging.info(f"Missing Requirements Action: {args.missing_requirements or 'None'}")
