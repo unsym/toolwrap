@@ -42,6 +42,13 @@ PYTHON_VERSION_FILENAME = "python_version.txt"
 REQUIREMENTS_FILENAME = "requirements.txt"
 
 
+# --- Exception class ---
+
+class BootstrapError(Exception):
+    """Custom exception to signal critical bootstrap errors."""
+    pass
+
+
 # --- Helper Functions ---
 
 def setup_logging(log_file_path: Path, dry_run: bool):
@@ -413,8 +420,9 @@ def main() -> None:
     logging.info(f"Recreate All: {args.recreate_all}, Dry Run: {args.dry_run}")
 
     if not source_dir.is_dir():
-        logging.error(f"Source directory not found: {source_dir}")
-        sys.exit(1)
+        error_msg = f"Source directory not found: {source_dir}"
+        logging.error(error_msg)
+        raise BootstrapError(error_msg)
 
     for dir_path in [bin_dir, venv_root_dir]:
         if not dir_path.exists():
@@ -451,10 +459,10 @@ def main() -> None:
     
     collisions = check_duplicate_wrappers(target_groups)
     if collisions:
-        logging.error("Detected duplicate wrapper names across groups:")
-        for name, groups in collisions.items():
-            logging.error(f"Wrapper '{name}' found in groups: {', '.join(groups)}")
-        sys.exit(1)
+        error_details = "; ".join(
+            f"Wrapper '{name}' in groups: {', '.join(groups)}" for name, groups in collisions.items()
+        )
+        raise BootstrapError(f"Duplicate wrapper names detected: {error_details}")
 
     fallback_version_str = args.python_version or f"{sys.version_info.major}.{sys.version_info.minor}"
     fallback_python_executable = find_python_executable(fallback_version_str)
@@ -531,9 +539,9 @@ def main() -> None:
         venv_python = venv_bin_dir / ('python.exe' if platform.system() == "Windows" else 'python')
         venv_pip = venv_bin_dir / ('pip.exe' if platform.system() == "Windows" else 'pip')
         if not args.dry_run and not (venv_python.is_file() and venv_pip.is_file()):
-            logging.error(f"Venv at {venv_path} appears incomplete (missing python or pip). Skipping group.")
-            encountered_errors = True
-            continue
+            error_msg = f"Venv at {venv_path} appears incomplete (missing python or pip) for group '{group_name}'."
+            logging.error(error_msg)
+            raise BootstrapError(error_msg)
 
         # Handle dependencies
         requirements_file = group_dir / REQUIREMENTS_FILENAME
@@ -655,4 +663,20 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BootstrapError as e:
+        logging.error("Critical error encountered:")
+        logging.error(e)
+        if "--dry-run" not in sys.argv:
+            sys.exit(1)
+        else:
+            logging.info("Dry-run mode active: Not aborting process despite the critical error.")
+    except Exception as e:
+        logging.exception("An unexpected error occurred:")
+        if "--dry-run" not in sys.argv:
+            sys.exit(1)
+    else:
+        logging.info("Bootstrap process completed successfully.")
+        if "--dry-run" not in sys.argv:
+            sys.exit(0)
