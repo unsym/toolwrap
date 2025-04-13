@@ -365,6 +365,20 @@ def install_dependencies(venv_path: Path, req_file: Path, dry_run: bool) -> bool
         return True
 
 
+def check_duplicate_wrappers(target_groups: List[Path]) -> dict:
+    duplicate_wrappers = {}
+    for group in target_groups:
+        py_files = list(group.glob("*.py"))
+        for py_file in py_files:
+            wrapper_name = py_file.stem
+            if wrapper_name in duplicate_wrappers:
+                duplicate_wrappers[wrapper_name].append(group.name)
+            else:
+                duplicate_wrappers[wrapper_name] = [group.name]
+    collisions = {name: groups for name, groups in duplicate_wrappers.items() if len(groups) > 1}
+    return collisions
+
+
 # --- Main Bootstrap Process ---
 
 def main() -> None:
@@ -453,6 +467,12 @@ def main() -> None:
         logging.error(error_msg)
         raise BootstrapError(error_msg)
     
+    collisions = check_duplicate_wrappers(target_groups)
+    if collisions:
+        error_details = "; ".join(
+            f"Wrapper '{name}' in groups: {', '.join(groups)}" for name, groups in collisions.items()
+        )
+        raise BootstrapError(f"Duplicate wrapper names detected: {error_details}")
 
     fallback_version_str = args.python_version or f"{sys.version_info.major}.{sys.version_info.minor}"
     fallback_python_executable = find_python_executable(fallback_version_str)
@@ -571,19 +591,35 @@ def main() -> None:
                 logging.info("No missing third-party imports detected.")
 
         # Upgrade pip before installing dependencies
-        if not install_dependencies(venv_path, requirements_file, args.dry_run):
-            logging.error(f"Dependency installation failed for group '{group_name}'.")
-            encountered_errors = True
+        if requirements_file.is_file():
+            logging.info(f"Upgrading pip in venv at {venv_path}...")
+            upgrade_cmd = [str(venv_pip), "install", "--upgrade", "pip"]
+            success_upgrade, _, _ = run_command(upgrade_cmd, dry_run=args.dry_run)
+            if success_upgrade and not args.dry_run:
+                summary_actions["pip_upgraded"].append(group_name)
+            else:
+                logging.error(f"Failed to upgrade pip for group '{group_name}'.")
+                encountered_errors = True
+
+            logging.info(f"Installing dependencies for group '{group_name}' from {requirements_file}...")
+            install_cmd = [str(venv_pip), "install", "-r", str(requirements_file)]
+            success_install, _, _ = run_command(install_cmd, dry_run=args.dry_run)
+            if success_install:
+                summary_actions["deps_installed"].append(group_name)
+            else:
+                logging.error(f"Dependency installation failed for {group_name}.")
+                encountered_errors = True
         else:
-            summary_actions["deps_installed"].append(group_name)
-        # Generate bash wrappers for Python scripts, handling duplicate names by skipping duplicates.
+            logging.info(f"No requirements file or packages to install for group '{group_name}'.")
+
+        # Generate bash wrappers and handle collisions by skipping them
         logging.info("Generating bash wrappers for Python scripts...")
         for py_file in py_files:
             wrapper_name = py_file.stem
             wrapper_path = bin_dir / wrapper_name
             if wrapper_name in generated_wrapper_targets:
                 conflict = generated_wrapper_targets[wrapper_name]
-                logging.warning(f"Duplicate wrapper detected: '{wrapper_name}' is produced by groups '{conflict.parent.name}' and '{group_name}'. Please rename one of the source .py files to ensure unique wrapper names. Skipping wrapper generation for group '{group_name}'.")
+                logging.warning(f"Wrapper collision: '{wrapper_name}' already exists for group '{conflict.parent.name}'. Skipping generation for group '{group_name}'.")
                 continue
             if create_bash_wrapper(wrapper_path, venv_path, py_file, args.dry_run):
                 generated_wrapper_targets[wrapper_name] = py_file
