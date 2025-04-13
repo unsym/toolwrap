@@ -469,10 +469,11 @@ def main() -> None:
     
     collisions = check_duplicate_wrappers(target_groups)
     if collisions:
-        error_details = "; ".join(
-            f"Wrapper '{name}' in groups: {', '.join(groups)}" for name, groups in collisions.items()
-        )
-        raise BootstrapError(f"Duplicate wrapper names detected: {error_details}")
+        collision_names = set(collisions.keys())
+        logging.warning("Duplicate wrapper names detected: " + ", ".join(sorted(collision_names)) +
+                        ". These wrappers will not be generated across any groups. Please rename the conflicting source .py files.")
+    else:
+        collision_names = set()
 
     fallback_version_str = args.python_version or f"{sys.version_info.major}.{sys.version_info.minor}"
     fallback_python_executable = find_python_executable(fallback_version_str)
@@ -600,6 +601,9 @@ def main() -> None:
         logging.info("Generating bash wrappers for Python scripts...")
         for py_file in py_files:
             wrapper_name = py_file.stem
+            if wrapper_name in collision_names:
+                logging.warning(f"Wrapper '{wrapper_name}' is in duplicate collision (detected in multiple groups). Skipping generation for group '{group_name}'.")
+                continue
             wrapper_path = bin_dir / wrapper_name
             if wrapper_name in generated_wrapper_targets:
                 conflict = generated_wrapper_targets[wrapper_name]
