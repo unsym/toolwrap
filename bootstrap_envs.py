@@ -349,13 +349,15 @@ def install_dependencies(venv_path: Path, req_file: Path, dry_run: bool) -> bool
 
     # Upgrade pip first (best practice)
     upgrade_cmd = [str(venv_pip), "install", "--upgrade", "pip"]
-    logging.info(f"Upgrading pip in venv {venv_path}...")
+    logging.debug(f"Upgrading pip in venv {venv_path}...")
     success, _, _ = run_command(upgrade_cmd, dry_run=dry_run)
     if not success:
         logging.error(f"Failed to upgrade pip in venv at {venv_path}.")
         return False
 
     if req_file.is_file():
+        deps = parse_requirements(req_file)
+        logging.info(f"Dependencies to be installed: {', '.join(sorted(deps)) if deps else 'None'}")
         install_cmd = [str(venv_pip), "install", "-r", str(req_file)]
         logging.info(f"Installing dependencies from {req_file}...")
         success, _, _ = run_command(install_cmd, dry_run=dry_run)
@@ -496,7 +498,7 @@ def main() -> None:
 
     for group_dir in target_groups:
         group_name = group_dir.name
-        logging.info(f"--- Processing Group: {group_name} ---")
+        logging.info(f"--- [{group_name}] ---")
         py_files = sorted(list(group_dir.glob("*.py")))
         if not py_files:
             logging.warning(f"No Python files found in {group_dir}. Skipping group.")
@@ -526,7 +528,7 @@ def main() -> None:
         # Create/Recreate venv
         venv_path = venv_root_dir / group_name
         if args.recreate_all and venv_path.is_dir():
-            logging.info(f"Recreate-all: Removing existing venv at {venv_path}")
+            logging.debug(f"Recreate-all: Removing existing venv at {venv_path}")
             if not args.dry_run:
                 try:
                     shutil.rmtree(venv_path)
@@ -536,7 +538,7 @@ def main() -> None:
                     continue
             summary_actions["venvs_recreated"].append(group_name)
         if not venv_path.is_dir():
-            logging.info(f"Creating venv for group '{group_name}' at {venv_path} using {python_executable}")
+            logging.debug(f"Creating venv for group '{group_name}' at {venv_path} using {python_executable}")
             if create_virtualenv(python_executable, venv_path, args.dry_run):
                 summary_actions["venvs_created"].append(group_name)
             else:
@@ -600,7 +602,7 @@ def main() -> None:
         else:
             summary_actions["deps_installed"].append(group_name)
         # Generate bash wrappers for Python scripts, handling duplicate names by skipping duplicates.
-        logging.info("Generating bash wrappers for Python scripts...")
+        logging.debug("Generating bash wrappers for Python scripts...")
         for py_file in py_files:
             wrapper_name = py_file.stem
             if wrapper_name in collision_names:
@@ -621,8 +623,7 @@ def main() -> None:
             else:
                 encountered_errors = True
 
-        logging.info(f"--- Finished processing group: {group_name} ---")
-        processed_groups.append(group_name)
+        logging.info(f"--- [{group_name}] End ---")
 
     # --- Final Summary ---
     logging.info("--- Bootstrap Environments Summary ---")
