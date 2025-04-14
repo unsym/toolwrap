@@ -359,11 +359,11 @@ def install_dependencies(venv_path: Path, req_file: Path, dry_run: bool) -> bool
         deps = parse_requirements(req_file)
         logging.info(f"Dependencies to be installed: {', '.join(sorted(deps)) if deps else 'None'}")
         install_cmd = [str(venv_pip), "install", "-r", str(req_file)]
-        logging.info(f"Installing dependencies from {req_file}...")
+        logging.debug(f"Installing dependencies from {req_file}...")
         success, _, _ = run_command(install_cmd, dry_run=dry_run)
         return success
     else:
-        logging.info(f"{req_file} not found; skipping dependency installation.")
+        logging.debug(f"{req_file} not found; skipping dependency installation.")
         return True
 
 
@@ -623,6 +623,11 @@ def main() -> None:
             else:
                 encountered_errors = True
 
+        group_installed = [py_file.stem for py_file in py_files 
+                           if py_file.stem in generated_wrapper_targets 
+                           and generated_wrapper_targets[py_file.stem].parent.name == group_name]
+        if group_installed:
+            logging.info("Scripts installed: " + ", ".join(sorted(group_installed)))
         logging.info(f"--- [{group_name}] End ---")
 
     # --- Final Summary ---
