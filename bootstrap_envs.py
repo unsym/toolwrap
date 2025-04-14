@@ -85,7 +85,7 @@ def run_command(
         Tuple[bool, str, str]: (success_status, stdout, stderr)
     """
     cmd_str = shlex.join(cmd)
-    logging.info(f"Running command: {cmd_str}" + (f" in {cwd}" if cwd else ""))
+    logging.debug(f"Running command: {cmd_str}" + (f" in {cwd}" if cwd else ""))
     if dry_run:
         logging.info("[DryRun] Command execution skipped.")
         return True, "", ""
@@ -270,7 +270,7 @@ def create_bash_wrapper(
       virtual environment's activated PATH is used and that any symlink resolution 
       (which might yield the system python) is bypassed.
     """
-    logging.info(f"Creating wrapper script: {wrapper_path}")
+    logging.debug(f"Creating wrapper script: {wrapper_path}")
 
     abs_venv_path = venv_path.resolve()
     abs_target_script_path = target_script_path.resolve()
@@ -314,7 +314,7 @@ exec python "$SCRIPT_PATH" "$@"
             f.write(wrapper_content)
         os.chmod(wrapper_path,
                  stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
-        logging.info(f"Successfully created wrapper: {wrapper_path}")
+        logging.debug(f"Successfully created wrapper: {wrapper_path}")
         return True
     except Exception as e:
         logging.error(f"Failed to create wrapper {wrapper_path}: {e}")
@@ -435,7 +435,7 @@ def main() -> None:
 
     for dir_path in [bin_dir, venv_root_dir]:
         if not dir_path.exists():
-            logging.info(f"Creating directory: {dir_path}")
+            logging.debug(f"Creating directory: {dir_path}")
             if not args.dry_run:
                 try:
                     dir_path.mkdir(parents=True, exist_ok=True)
@@ -560,14 +560,14 @@ def main() -> None:
         requirements_file = group_dir / REQUIREMENTS_FILENAME
         installed_packages = parse_requirements(requirements_file) if requirements_file.is_file() else set()
         if requirements_file.is_file():
-            logging.info(f"Found {REQUIREMENTS_FILENAME} with packages: {', '.join(sorted(installed_packages)) or 'None'}")
+            logging.debug(f"Found {REQUIREMENTS_FILENAME} with packages: {', '.join(sorted(installed_packages)) or 'None'}")
         else:
             logging.info(f"No {REQUIREMENTS_FILENAME} for group '{group_name}'.")
 
         if args.missing_requirements in ["suggest", "append"]:
-            logging.info("Scanning Python files for third-party imports...")
+            logging.debug("Scanning Python files for third-party imports...")
             detected_imports = find_third_party_imports(py_files)
-            logging.info(f"Detected imports: {', '.join(sorted(detected_imports)) or 'None'}")
+            logging.debug(f"Detected imports: {', '.join(sorted(detected_imports)) or 'None'}")
             missing_pkgs = detected_imports - installed_packages
             if missing_pkgs:
                 missing_str = ", ".join(sorted(missing_pkgs))

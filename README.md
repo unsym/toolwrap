@@ -142,7 +142,7 @@ Available arguments:
   *If a specified group does not exist, the tool logs a warning and skips it.*
 
  - **`--verbose`**  
-   **Description:** Increase output verbosity. When enabled, the tool outputs detailed debug-level logs.  
+   **Description:** Increase output verbosity to DEBUG level. When enabled, detailed internal operations (such as command invocations and file operations) are logged. By default, only high-level progress, warnings, and errors are shown.  
    **Default:** Not enabled (INFO level logging)
 
 ---
