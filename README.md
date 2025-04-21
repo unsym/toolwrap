@@ -103,16 +103,15 @@ python3 bootstrap_envs.py [OPTIONS]
 
 Available arguments:
 
-- **`--source`**  
+- **`--source`**
   **Description:** Root directory containing tool groups. Each subfolder is treated as a group (one level deep).  
   **Default:** Current directory (`.`)
 
--- **`--bin`**  
+- **`--bin`**
   **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here. Default is the `bin/` folder under the source directory.
   **Default:** `bin/`
 
-- **`--venv-root`**  
--- **`--venv-root`**  
+- **`--venv-root`**
   **Description:** Directory under which virtual environments are created. Default is the `.venv` folder inside the bin directory.
   **Default:** `<source>/bin/.venv` (if --bin is not overridden)
 
