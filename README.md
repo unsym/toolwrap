@@ -1,4 +1,4 @@
-# Bootstrap Virtual Environments for Personal Command-Line Python Tools
+# Toolwrap: Automated Environments and CLI Wrappers for Python Tools
 
 ## 1. Overview and Purpose
 
@@ -18,8 +18,8 @@ This design avoids version conflicts between scripts, simplifies re-creating set
 1. **Dependency Isolation:**  
    Each group’s Python virtual environment is kept separate, preventing package conflicts when scripts rely on different or incompatible libraries.
 
-2. **Portability and Reproducibility:**  
-   Because the tool manages creation and maintenance of virtual environments and wrappers, the structure can be cloned, re-bootstrapped, and run on any machine without manual environment activation.
+2. **Portability and Reproducibility:**
+   Because the tool manages creation and maintenance of virtual environments and wrappers, the structure can be cloned, set up again using `toolwrap`, and run on any machine without manual environment activation.
 
 3. **Wrapper Convenience:**  
    Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment.
@@ -164,7 +164,7 @@ The tool will:
 2. Remove any existing environments for these two groups, recreate them under `~/bin/mytools/.venvs/`, then install dependencies from each group’s `requirements.txt`.  
 3. Append any newly detected libraries to `requirements.txt` files.  
 4. Generate or overwrite bash wrappers in `~/bin/mytools`.  
-5. Update `~/bin/mytools/.venvs/bootstrap_envs.log` with the details.
+5. Update `~/bin/mytools/.venvs/toolwrap_envs.log` with the details.
 
 ---
 
@@ -205,8 +205,8 @@ The tool will:
 6. **Cleanup Unused Environments (Optional):**
    - *If `--recreate-all` is given, existing environments under `--venv-root` for the included groups are removed before being recreated.*
 
-7. **Logging:**  
-   - Every action (creation, updates, errors) is appended to `--venv-root/bootstrap_envs.log` with a timestamp, group name, and short description (e.g., “CREATED ENV,” “INSTALLED PACKAGES,” “WARNING: Missing version fallback”).  
+7. **Logging:**
+   - Every action (creation, updates, errors) is appended to `--venv-root/toolwrap_envs.log` with a timestamp, group name, and short description (e.g., "CREATED ENV," "INSTALLED PACKAGES," "WARNING: Missing version fallback").
    - **The file is append-only and may grow over time.** Users may periodically clear or rotate it if desired.
 
 8. **Dry Run Mode (`--dry-run`):**  
