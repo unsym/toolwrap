@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Bootstrap Virtual Environments for Personal Command-Line Python Tools (v_implementation_W_updated)
+Toolwrap: Automated Environments and CLI Wrappers for Python Tools
 
 This script automates the setup and management of isolated Python environments
 for command-line scripts grouped by functionality within subfolders.
@@ -35,15 +35,15 @@ from typing import Dict, List, Optional, Set, Tuple
 
 # --- Configuration ---
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-LOG_FILENAME = "bootstrap_envs.log"
+LOG_FILENAME = "toolwrap_envs.log"
 PYTHON_VERSION_FILENAME = "python_version.txt"
 REQUIREMENTS_FILENAME = "requirements.txt"
 
 
 # --- Exception class ---
 
-class BootstrapError(Exception):
-    """Custom exception to signal critical bootstrap errors."""
+class ToolwrapError(Exception):
+    """Custom exception to signal critical toolwrap errors."""
     pass
 
 
@@ -381,11 +381,11 @@ def check_duplicate_wrappers(target_groups: List[Path]) -> dict:
     return collisions
 
 
-# --- Main Bootstrap Process ---
+# --- Main Toolwrap Process ---
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Bootstrap Virtual Environments for Personal Command-Line Tools",
+        description="Toolwrap: Automated Environments and CLI Wrappers for Python Tools",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--source", type=Path, default=Path("."),
@@ -425,7 +425,7 @@ def main() -> None:
     log_file = venv_root_dir / LOG_FILENAME
 
     setup_logging(log_file, args.dry_run, args.verbose)
-    logging.info("--- Starting Bootstrap Environments ---")
+    logging.info("--- Starting Toolwrap Environments ---")
     logging.info(f"Source: {source_dir}, Bin: {bin_dir}, Venv Root: {venv_root_dir}")
     logging.info(f"Missing Requirements Action: {args.missing_requirements or 'None'}")
     logging.info(f"Recreate All: {args.recreate_all}, Dry Run: {args.dry_run}")
@@ -433,7 +433,7 @@ def main() -> None:
     if not source_dir.is_dir():
         error_msg = f"Source directory not found: {source_dir}"
         logging.error(error_msg)
-        raise BootstrapError(error_msg)
+        raise ToolwrapError(error_msg)
 
     for dir_path in [bin_dir, venv_root_dir]:
         if not dir_path.exists():
@@ -444,11 +444,11 @@ def main() -> None:
                 except OSError as e:
                     error_msg = f"Failed to create directory {dir_path}: {e}"
                     logging.error(error_msg)
-                    raise BootstrapError(error_msg)
+                    raise ToolwrapError(error_msg)
         elif not dir_path.is_dir():
             error_msg = f"Path exists but is not a directory: {dir_path}"
             logging.error(error_msg)
-            raise BootstrapError(error_msg)
+            raise ToolwrapError(error_msg)
 
     # Identify group folders
     all_subdirs = [d for d in source_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
@@ -469,7 +469,7 @@ def main() -> None:
     if not target_groups:
         error_msg = "No valid group folders found."
         logging.error(error_msg)
-        raise BootstrapError(error_msg)
+        raise ToolwrapError(error_msg)
     
     collisions = check_duplicate_wrappers(target_groups)
     if collisions:
@@ -556,7 +556,7 @@ def main() -> None:
         if not args.dry_run and not (venv_python.is_file() and venv_pip.is_file()):
             error_msg = f"Venv at {venv_path} appears incomplete (missing python or pip) for group '{group_name}'."
             logging.error(error_msg)
-            raise BootstrapError(error_msg)
+            raise ToolwrapError(error_msg)
 
         # Handle dependencies
         requirements_file = group_dir / REQUIREMENTS_FILENAME
@@ -631,7 +631,7 @@ def main() -> None:
         logging.info(f"--- [{group_name}] End ---")
 
     # --- Final Summary ---
-    logging.info("--- Bootstrap Environments Summary ---")
+    logging.info("--- Toolwrap Environments Summary ---")
     if args.dry_run:
         logging.info("NOTE: Dry-run mode active. No changes were made.")
     logging.info(f"Processed groups ({len(processed_groups)}): {', '.join(sorted(processed_groups)) or 'None'}")
@@ -661,18 +661,18 @@ def main() -> None:
         logging.info("No wrappers generated.")
     logging.info(f"Log file located at: {log_file}")
     if encountered_errors:
-        error_msg = "Bootstrap process completed with errors. Review the logs above."
+        error_msg = "Toolwrap process completed with errors. Review the logs above."
         logging.error(error_msg)
-        raise BootstrapError(error_msg)
+        raise ToolwrapError(error_msg)
     else:
-        logging.info("Bootstrap process completed successfully.")
+        logging.info("Toolwrap process completed successfully.")
         return
 
 
 if __name__ == "__main__":
     try:
         main()
-    except BootstrapError as e:
+    except ToolwrapError as e:
         logging.error("Critical error encountered:")
         logging.error(e)
         sys.exit(1)
@@ -680,5 +680,5 @@ if __name__ == "__main__":
         logging.exception("An unexpected error occurred:")
         sys.exit(1)
     else:
-        logging.info("Bootstrap process completed successfully.")
+        logging.info("Toolwrap process completed successfully.")
         sys.exit(0)
