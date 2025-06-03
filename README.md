@@ -2,7 +2,7 @@
 
 ## 1. Overview and Purpose
 
-The **bootstrap_envs.py** tool automates the setup and management of isolated Python environments for a collection of command-line scripts grouped by functionality. Each group resides in a separate subfolder, containing Python scripts along with optional dependency and Python version requirements. This utility:
+The **toolwrap.py** tool automates the setup and management of isolated Python environments for a collection of command-line scripts grouped by functionality. Each group resides in a separate subfolder, containing Python scripts along with optional dependency and Python version requirements. This utility:
 
 1. Identifies all relevant subfolders  (or specified subsets) under a root directory.  
 2. For each subfolder (group), sets up or updates a dedicated virtual environment for all Python scripts in that folder.  
@@ -89,7 +89,7 @@ Where:
   - Only use the version number (e.g., `3.8`, `3.11`).  
   - Do **not** include `python` (e.g., avoid `python3.9`), paths (e.g., `/usr/bin/python3.9`), or shell commands.  
   - The specified version must be available on the system and discoverable (e.g., `python3.9` should work in shell).  
-  - If not found, a warning is logged, and the tool falls back to `--python-version` (if set) or else the interpreter used to invoke `bootstrap_envs.py`. The process continues; it does **not** abort.
+  - If not found, a warning is logged, and the tool falls back to `--python-version` (if set) or else the interpreter used to invoke `toolwrap.py`. The process continues; it does **not** abort.
 
 ---
 
@@ -98,7 +98,7 @@ Where:
 The script can be run as:
 
 ```bash
-python3 bootstrap_envs.py [OPTIONS]
+python3 toolwrap.py [OPTIONS]
 ```
 
 Available arguments:
@@ -117,7 +117,7 @@ Available arguments:
 
 - **`--python-version`**  
   **Description:** Fallback Python version to use if a group does not specify one via `python_version.txt`, or if the specified version is unavailable on the system.  
-  **Default:** Version of the Python interpreter used to run `bootstrap_envs.py`
+  **Default:** Version of the Python interpreter used to run `toolwrap.py`
 
 - **`--missing-requirements`**  
   **Description:** Controls how the tool handles **third-party** packages that are imported in scripts but missing from `requirements.txt`. Standard library imports are ignored.  
@@ -149,7 +149,7 @@ Available arguments:
 ## 5. Usage Example
 
 ```bash
-python3 bootstrap_envs.py \
+python3 toolwrap.py \
   --source ~/mytools \
   --bin ~/bin/mytools \
   --venv-root ~/bin/mytools/.venvs \
@@ -178,7 +178,7 @@ The tool will:
 
 2. **Resolve Python Version:**  
    - If a group subfolder has `python_version.txt`, parse that file’s contents as the Python version.  
-   - If the system doesn’t have that version installed or discoverable, log a warning and fall back to `--python-version` (if set), or to the interpreter running `bootstrap_envs.py`.  
+   - If the system doesn’t have that version installed or discoverable, log a warning and fall back to `--python-version` (if set), or to the interpreter running `toolwrap.py`.  
    - If `--python-version` is not set and no `python_version.txt` is provided, default to the interpreter running the script.  
    - **In all cases, the script continues; it does not abort on version mismatch.**
 
