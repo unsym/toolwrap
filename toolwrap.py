@@ -453,6 +453,7 @@ def main() -> None:
     # Identify group folders
     all_subdirs = [d for d in source_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
     target_groups: List[Path] = []
+    skipped_groups: List[str] = []
     if args.include_groups:
         included_names = {name.strip() for name in args.include_groups.split(",") if name.strip()}
         logging.info(f"Processing specified groups: {', '.join(sorted(included_names))}")
@@ -462,6 +463,7 @@ def main() -> None:
                 target_groups.append(group_map[name])
             else:
                 logging.warning(f"Specified group '{name}' not found in {source_dir}.")
+                skipped_groups.append(f"{name} (not found)")
     else:
         logging.info("Processing all subdirectories in source.")
         target_groups = all_subdirs
@@ -502,6 +504,7 @@ def main() -> None:
         py_files = sorted(list(group_dir.glob("*.py")))
         if not py_files:
             logging.warning(f"No Python files found in {group_dir}. Skipping group.")
+            skipped_groups.append(f"{group_name} (no .py files)")
             continue
 
         processed_groups.append(group_name)
@@ -659,6 +662,10 @@ def main() -> None:
             logging.info(f"  - {w}")
     else:
         logging.info("No wrappers generated.")
+    if skipped_groups:
+        logging.info("Skipped groups:")
+        for s in skipped_groups:
+            logging.info(f"  - {s}")
     logging.info(f"Log file located at: {log_file}")
     if encountered_errors:
         error_msg = "Toolwrap process completed with errors. Review the logs above."
