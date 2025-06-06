@@ -1,5 +1,7 @@
 import sys
 import stat
+import subprocess
+import platform
 from pathlib import Path
 
 import pytest
@@ -99,6 +101,39 @@ def test_create_bash_wrapper(tmp_path):
     mode = wrapper.stat().st_mode
     assert mode & stat.S_IXUSR
     assert mode & stat.S_IRUSR
+
+
+def test_create_cmd_wrapper_generation(tmp_path, monkeypatch):
+    """Windows wrapper generation adds .cmd extension."""
+    monkeypatch.setattr(toolwrap.platform, "system", lambda: "Windows")
+    wrapper = tmp_path / "run"
+    venv = tmp_path / "venv"
+    script = tmp_path / "s.py"
+    (venv / "Scripts").mkdir(parents=True)
+    script.write_text("print('hi')")
+    assert toolwrap.create_wrapper(wrapper, venv, script)
+    cmd_file = wrapper.with_suffix(".cmd")
+    text = cmd_file.read_text()
+    assert "%~dp0" in text
+    assert "activate.bat" in text
+    assert cmd_file.exists()
+
+
+@pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific execution test")
+def test_cmd_wrapper_execution(tmp_path, monkeypatch):
+    """Generated .cmd wrapper runs target script after activating venv."""
+    wrapper = tmp_path / "tool"
+    venv = tmp_path / "venv"
+    scripts = venv / "Scripts"
+    scripts.mkdir(parents=True)
+    (scripts / "activate.bat").write_text("@echo off\nset TESTVAR=1\n")
+    script = tmp_path / "s.py"
+    script.write_text("import os; print('VAR=' + os.getenv('TESTVAR',''))")
+    monkeypatch.setattr(toolwrap.platform, "system", lambda: "Windows")
+    assert toolwrap.create_wrapper(wrapper, venv, script)
+    cmd_path = wrapper.with_suffix(".cmd")
+    result = subprocess.run(["cmd", "/c", str(cmd_path)], capture_output=True, text=True)
+    assert "VAR=1" in result.stdout
 
 
 def _setup_basic(monkeypatch):

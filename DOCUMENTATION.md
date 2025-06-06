@@ -9,7 +9,7 @@ The **toolwrap.py** tool automates the setup and management of isolated Python e
 1. Identifies all relevant subfolders  (or specified subsets) under a root directory.  
 2. For each subfolder (group), sets up or updates a dedicated virtual environment for all Python scripts in that folder.  
 3. Installs dependencies listed in a `requirements.txt` file (with optional auto-detection of missing third-party libraries).  
-4. Creates or updates bash wrapper scripts in a user-specified bin directory (Linux/Mac), enabling each Python script to be invoked by name from the command line with its virtual environment automatically activated.
+4. Creates or updates wrapper scripts in a user-specified bin directory (bash on POSIX, `.cmd` on Windows), enabling each Python script to be invoked by name from the command line with its virtual environment automatically activated.
 
 This design avoids version conflicts between scripts, simplifies re-creating setups on new machines, and keeps a user’s global environment clean.  
 
@@ -23,8 +23,8 @@ This design avoids version conflicts between scripts, simplifies re-creating set
 2. **Portability and Reproducibility:**
    Because the tool manages creation and maintenance of virtual environments and wrappers, the structure can be cloned, set up again using `toolwrap`, and run on any machine without manual environment activation.
 
-3. **Wrapper Convenience:**  
-   Bash wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment.
+3. **Wrapper Convenience:**
+   Wrapper scripts are generated so that each tool can be run as a command from a designated bin folder (e.g., `~/bin/`), without needing to manually activate the correct environment. On Windows, these are `.cmd` files; on POSIX systems, bash scripts are created.
 
 4. **Optional Dependency Detection:**  
    The tool performs a basic scan of user scripts for simple static import statements referencing **third-party** libraries. This approach may not catch dynamic or conditional imports, but it is sufficient as an assistive measure to help ensure that `requirements.txt` includes the most common dependencies. It can optionally suggest missing dependencies or automatically append them.
@@ -59,7 +59,7 @@ example_tools/
 
 Where:
 - `math_tools/` and `media_tools/` are group folders.
-- Each `.py` file becomes a standalone command once the script has generated its corresponding bash wrapper.
+- Each `.py` file becomes a standalone command once the script has generated its corresponding wrapper.
 - Each group can have its own dependencies and Python version requirements.
 
 ### Additional Notes on Configuration Files
@@ -107,9 +107,9 @@ Available arguments:
   **Description:** Root directory containing tool groups. Each subfolder is treated as a group (one level deep).  
   **Default:** Current directory (`.`)
 
-- **`--bin`**
-  **Description:** Directory where the generated bash wrapper scripts will be placed. Each script becomes an executable command here. Default is the `bin/` folder under the source directory.
-  **Default:** `bin/`
+  - **`--bin`**
+    **Description:** Directory where the generated wrapper scripts will be placed. Each script becomes an executable command here. Default is the `bin/` folder under the source directory.
+    **Default:** `bin/`
 
 - **`--venv-root`**
   **Description:** Directory under which virtual environments are created. Default is the `.venv` folder inside the bin directory.
@@ -166,7 +166,7 @@ The tool will:
 1. Look under `./example_tools` only at `math_tools` and `media_tools` (ignoring any other subfolders).
 2. Remove any existing environments for these two groups, recreate them under `./bin/.venvs/`, then install dependencies from each group’s `requirements.txt`.
 3. Append any newly detected libraries to `requirements.txt` files.
-4. Generate or overwrite bash wrappers in `./bin`.
+4. Generate or overwrite command wrappers in `./bin`.
 5. Update `./bin/.venvs/toolwrap_envs.log` with the details.
 
 ---
@@ -197,13 +197,13 @@ The tool will:
    - If `requirements.txt` is not found and `--missing-requirements` is not set, no dependencies will be installed.  
    - Install or upgrade these packages in the virtual environment. The tool does **not** remove any listed packages, even if they’re not imported in the scripts.
 
-5. **Generate Bash Wrappers:**  
-   - For each `.py` file in the group folder, create a shell script in `--bin`:
-     - Script name matches the `.py` filename (e.g., `ping_helper.py` → `ping_helper`).  
-     - Shebang: `#!/usr/bin/env bash`  
-     - Activates the environment, then invokes the `.py` file with all CLI arguments passed along.  
-   - Make each wrapper executable (`chmod +x`).  
-   - **Before generating bash wrappers, the tool performs a pre-check for duplicate wrapper names across all groups. If duplicate names are detected, no wrappers for those names will be generated in any group, and a warning is logged instructing the user to manually rename the conflicting source .py files to ensure unique wrapper names.**  
+5. **Generate Command Wrappers:**
+   - For each `.py` file in the group folder, create a script in `--bin`:
+     - Script name matches the `.py` filename (e.g., `ping_helper.py` → `ping_helper`).
+     - On POSIX systems the wrapper begins with the shebang `#!/usr/bin/env bash`; on Windows a `.cmd` file is produced.
+     - Activates the environment, then invokes the `.py` file with all CLI arguments passed along.
+   - Make each wrapper executable (`chmod +x`).
+   - **Before generating wrappers, the tool performs a pre-check for duplicate wrapper names across all groups. If duplicate names are detected, no wrappers for those names will be generated in any group, and a warning is logged instructing the user to manually rename the conflicting source .py files to ensure unique wrapper names.**
 
 6. **Cleanup Unused Environments (Optional):**
    - *With `--recreate-all`, toolwrap deletes old environment folders before setup. When `--include-groups` is omitted, **all** subdirectories in `--venv-root` are purged. If specific groups are supplied, only those matching folders are removed.*

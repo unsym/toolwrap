@@ -34,6 +34,7 @@ installed. For details on the example scripts, see
 [example_tools/README.md](example_tools/README.md).
 
 By default each subfolder of `--source` becomes a tool group. A virtual environment is created for each group and all Python scripts get wrapper commands in `--bin`.
+On Windows, these wrappers are generated as `.cmd` files; on POSIX systems, bash scripts are created.
 
 ## Customization
 
