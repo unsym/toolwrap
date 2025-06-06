@@ -44,22 +44,21 @@ The tool expects a root directory (specified via `--source`) containing one or m
 
 **If a subfolder contains no `.py` files, the tool will skip creating a virtual environment for that folder.**
 
-For example, if `--source` is set to `~/mytools`, your structure might look like this:
+For example, if `--source` is set to `./example_tools`, your structure might look like this:
 
 ```
-~/mytools/
+example_tools/
+├── math_tools/
+│   ├── sum_array.py
+│   └── sum_matrix.py
 ├── media_tools/
 │   ├── resize_img.py
-├── net_tools/
-│   ├── ping_helper.py
-│   ├── ip_lookup.py
 │   ├── requirements.txt
 │   └── python_version.txt
-└── ...
 ```
 
 Where:
-- `net_tools/` and `media_tools/` are group folders.
+- `math_tools/` and `media_tools/` are group folders.
 - Each `.py` file becomes a standalone command once the script has generated its corresponding bash wrapper.
 - Each group can have its own dependencies and Python version requirements.
 
@@ -136,7 +135,7 @@ Available arguments:
   **Default:** Not set
 
 - **`--include-groups`**  
-  **Description:** Comma-separated list of specific group folder names to process (e.g., `net_tools,media_tools`).  
+  **Description:** Comma-separated list of specific group folder names to process (e.g., `math_tools,media_tools`).
   If omitted, all subfolders in `--source` are processed.  
   **Default:** Not set (processes all groups)  
   *If a specified group does not exist, the tool logs a warning and skips it.*
@@ -149,30 +148,33 @@ Available arguments:
 
 ## 5. Usage Example
 
+See [example_tools/README.md](example_tools/README.md) for an overview of the
+sample scripts used in this guide.
+
 ```bash
 python toolwrap.py \
-  --source ~/mytools \
-  --bin ~/bin/mytools \
-  --venv-root ~/bin/mytools/.venvs \
+  --source ./example_tools \
+  --bin ./bin \
+  --venv-root ./bin/.venvs \
   --missing-requirements append \
   --recreate-all \
-  --include-groups net_tools,media_tools
+  --include-groups math_tools,media_tools
 ```
 
 The tool will:
 
-1. Look under `~/mytools` only at `net_tools` and `media_tools` (ignoring any other subfolders).  
-2. Remove any existing environments for these two groups, recreate them under `~/bin/mytools/.venvs/`, then install dependencies from each group’s `requirements.txt`.  
-3. Append any newly detected libraries to `requirements.txt` files.  
-4. Generate or overwrite bash wrappers in `~/bin/mytools`.  
-5. Update `~/bin/mytools/.venvs/toolwrap_envs.log` with the details.
+1. Look under `./example_tools` only at `math_tools` and `media_tools` (ignoring any other subfolders).
+2. Remove any existing environments for these two groups, recreate them under `./bin/.venvs/`, then install dependencies from each group’s `requirements.txt`.
+3. Append any newly detected libraries to `requirements.txt` files.
+4. Generate or overwrite bash wrappers in `./bin`.
+5. Update `./bin/.venvs/toolwrap_envs.log` with the details.
 
 ---
 
 ## 6. Operational Workflow
 
 1. **Determine Groups to Process:**  
-   - If `--include-groups` is provided (e.g., `net_tools,media_tools`), only those subfolders are processed.  
+   - If `--include-groups` is provided (e.g., `math_tools,media_tools`), only those subfolders are processed.
    - Otherwise, process **all direct subfolders** in the `--source` directory.  
    - *If a listed group does not exist, a warning is logged.*  
    - **Folders with no `.py` files are skipped.**

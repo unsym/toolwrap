@@ -13,21 +13,25 @@
 ## Minimal Folder Layout
 
 ```
-mytools/
+example_tools/
+├── math_tools/
+│   ├── sum_array.py
+│   └── sum_matrix.py
 ├── media_tools/
 │   ├── resize_img.py
-├── net_tools/
-│   ├── ping_helper.py
 │   ├── requirements.txt
 │   └── python_version.txt
-└── ...
 ```
 
 ## Basic Usage
 
 ```bash
-python toolwrap.py --source ~/mytools --bin ~/bin/mytools
+python toolwrap.py --source ./example_tools --bin ./bin
 ```
+Toolwrap detects that the math tools depend on **NumPy** and installs it
+automatically. Packages listed in each group's `requirements.txt` are also
+installed. For details on the example scripts, see
+[example_tools/README.md](example_tools/README.md).
 
 By default each subfolder of `--source` becomes a tool group. A virtual environment is created for each group and all Python scripts get wrapper commands in `--bin`.
 
