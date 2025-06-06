@@ -223,3 +223,11 @@ The tool will:
      - Added/removed dependencies  
      - **Skipped groups** (e.g., no `.py` found, not in `--include-groups`)  
      - Any problems encountered (e.g., missing Python versions)  
+
+## Running Tests
+To run the automated test suite, install `pytest` and execute:
+
+```bash
+pytest
+```
+
