@@ -100,3 +100,65 @@ def test_create_bash_wrapper(tmp_path):
     assert mode & stat.S_IXUSR
     assert mode & stat.S_IRUSR
 
+
+def _setup_basic(monkeypatch):
+    monkeypatch.setattr(toolwrap, "install_dependencies", lambda *a, **k: True)
+    monkeypatch.setattr(toolwrap, "create_bash_wrapper", lambda *a, **k: True)
+    monkeypatch.setattr(toolwrap, "find_python_executable", lambda v: Path(sys.executable))
+    def fake_create(py, path, dry_run):
+        path.mkdir(parents=True, exist_ok=True)
+        bin_dir = path / ("Scripts" if toolwrap.platform.system() == "Windows" else "bin")
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        (bin_dir / ("python.exe" if toolwrap.platform.system() == "Windows" else "python")).write_text("")
+        (bin_dir / ("pip.exe" if toolwrap.platform.system() == "Windows" else "pip")).write_text("")
+        return True
+    monkeypatch.setattr(toolwrap, "create_virtualenv", fake_create)
+
+
+def test_recreate_all_removes_all(tmp_path, monkeypatch):
+    source = tmp_path / "src"
+    bin_dir = tmp_path / "bin"
+    venv_root = bin_dir / ".venv"
+    source.mkdir()
+    bin_dir.mkdir()
+    venv_root.mkdir()
+    (source / "g1").mkdir()
+    (source / "g1" / "script.py").write_text("print('hi')")
+    obsolete = venv_root / "old"
+    obsolete.mkdir(parents=True)
+
+    _setup_basic(monkeypatch)
+
+    monkeypatch.setattr(sys, "argv", ["toolwrap", "--source", str(source), "--bin", str(bin_dir),
+                               "--venv-root", str(venv_root), "--recreate-all"])
+    toolwrap.main()
+
+    assert not obsolete.exists()
+
+
+def test_recreate_all_include_groups(tmp_path, monkeypatch):
+    source = tmp_path / "src"
+    bin_dir = tmp_path / "bin"
+    venv_root = bin_dir / ".venv"
+    for p in [source, bin_dir, venv_root]:
+        p.mkdir(parents=True, exist_ok=True)
+    for name in ["g1", "g2"]:
+        grp = source / name
+        grp.mkdir()
+        (grp / "s.py").write_text("print('x')")
+        (venv_root / name).mkdir()
+    untouched = venv_root / "untouched"
+    untouched.mkdir()
+
+    _setup_basic(monkeypatch)
+
+    monkeypatch.setattr(sys, "argv", [
+        "toolwrap", "--source", str(source), "--bin", str(bin_dir),
+        "--venv-root", str(venv_root), "--recreate-all", "--include-groups", "g1"
+    ])
+    toolwrap.main()
+
+    assert (venv_root / "g1").is_dir()
+    assert (venv_root / "g2").is_dir()
+    assert untouched.is_dir()
+
