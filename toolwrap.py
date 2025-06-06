@@ -281,6 +281,8 @@ def parse_requirements(req_file: Path) -> Set[str]:
                     continue
                 if line.startswith("-r"):
                     nested = (path.parent / line[2:].strip()).resolve()
+                    if nested in visited:
+                        continue
                     _parse(nested)
                     continue
                 egg_match = re.search(r"#egg=([A-Za-z0-9_.-]+)", line)
