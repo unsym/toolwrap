@@ -162,3 +162,34 @@ def test_recreate_all_include_groups(tmp_path, monkeypatch):
     assert (venv_root / "g2").is_dir()
     assert untouched.is_dir()
 
+
+def test_path_is_relative_helper():
+    """Piecewise path comparison works without Path.is_relative_to."""
+    from pathlib import Path
+
+    assert toolwrap._path_is_relative_to(Path("/usr/lib/foo.py"), Path("/usr/lib"))
+    assert not toolwrap._path_is_relative_to(Path("/usr/lib64/foo.py"), Path("/usr/lib"))
+
+
+def test_install_dependencies_records_pip_upgrade(monkeypatch, tmp_path):
+    """Successful install_dependencies records pip upgrade in summary."""
+    venv = tmp_path / "venv"
+    bin_dir = venv / ("Scripts" if toolwrap.platform.system() == "Windows" else "bin")
+    bin_dir.mkdir(parents=True)
+    pip_path = bin_dir / ("pip.exe" if toolwrap.platform.system() == "Windows" else "pip")
+    pip_path.write_text("pip")
+
+    req = tmp_path / "req.txt"
+    req.write_text("requests\n")
+
+    calls = []
+
+    def fake_run(cmd, cwd=None, env=None, dry_run=False):
+        calls.append(cmd)
+        return True, "", ""
+
+    monkeypatch.setattr(toolwrap, "run_command", fake_run)
+
+    summary = {"pip_upgraded": []}
+    assert toolwrap.install_dependencies(venv, req, False, summary, "grp")
+    assert summary["pip_upgraded"] == ["grp"]
