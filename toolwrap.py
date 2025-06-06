@@ -306,7 +306,7 @@ def create_bash_wrapper(
     wrapper_path: Path,
     venv_path: Path,
     target_script_path: Path,
-    dry_run: bool = False
+    dry_run: bool = False,
 ) -> bool:
     """
     Generates and writes the bash wrapper script.
@@ -371,6 +371,84 @@ exec python "$SCRIPT_PATH" "$@"
             except OSError:
                 pass
         return False
+
+
+def create_cmd_wrapper(
+    wrapper_path: Path,
+    venv_path: Path,
+    target_script_path: Path,
+    dry_run: bool = False,
+) -> bool:
+    """Generate a Windows CMD wrapper script."""
+    logging.debug(f"Creating Windows wrapper script: {wrapper_path}")
+
+    abs_venv_path = venv_path.resolve()
+    abs_target_script_path = target_script_path.resolve()
+
+    activate_script = abs_venv_path / "Scripts" / "activate.bat"
+    rel_script = os.path.relpath(
+        abs_target_script_path, wrapper_path.parent.resolve()
+    ).replace("/", "\\")
+    rel_script = "\\" + rel_script
+
+    wrapper_content = f"""@echo off
+SET "VENV_PATH={abs_venv_path}"
+SET "ACTIVATE_SCRIPT=%VENV_PATH%\\Scripts\\activate.bat"
+SET "SCRIPT_PATH=%~dp0{rel_script}"
+
+IF NOT EXIST "%ACTIVATE_SCRIPT%" (
+    echo Error: Activation script not found at %ACTIVATE_SCRIPT% >&2
+    exit /B 1
+)
+IF NOT EXIST "%SCRIPT_PATH%" (
+    echo Error: Target script not found at %SCRIPT_PATH% >&2
+    exit /B 1
+)
+
+CALL "%ACTIVATE_SCRIPT%"
+python "%SCRIPT_PATH%" %*
+"""
+
+    if dry_run:
+        logging.info(
+            f"[DryRun] Would write wrapper content to {wrapper_path}:\n{wrapper_content}"
+        )
+        return True
+
+    try:
+        with open(wrapper_path, "w", encoding="utf-8") as f:
+            f.write(wrapper_content)
+        os.chmod(
+            wrapper_path,
+            stat.S_IRWXU
+            | stat.S_IRGRP
+            | stat.S_IXGRP
+            | stat.S_IROTH
+            | stat.S_IXOTH,
+        )
+        logging.debug(f"Successfully created wrapper: {wrapper_path}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to create wrapper {wrapper_path}: {e}")
+        if wrapper_path.exists():
+            try:
+                wrapper_path.unlink()
+            except OSError:
+                pass
+        return False
+
+
+def create_wrapper(
+    wrapper_path: Path,
+    venv_path: Path,
+    target_script_path: Path,
+    dry_run: bool = False,
+) -> bool:
+    """Create a platform-appropriate wrapper script."""
+    if platform.system() == "Windows":
+        wrapper_path = wrapper_path.with_suffix(".cmd")
+        return create_cmd_wrapper(wrapper_path, venv_path, target_script_path, dry_run)
+    return create_bash_wrapper(wrapper_path, venv_path, target_script_path, dry_run)
 
 
 # --- Virtual Environment Setup ---
@@ -695,18 +773,23 @@ def main() -> None:
             if wrapper_name in collision_names:
                 logging.warning(f"Wrapper '{wrapper_name}' is in duplicate collision (detected in multiple groups). Skipping generation for group '{group_name}'.")
                 continue
-            wrapper_path = bin_dir / wrapper_name
+            wrapper_base = bin_dir / wrapper_name
+            actual_wrapper = (
+                wrapper_base.with_suffix(".cmd")
+                if platform.system() == "Windows"
+                else wrapper_base
+            )
             if wrapper_name in generated_wrapper_targets:
                 conflict = generated_wrapper_targets[wrapper_name]
                 logging.warning(f"Wrapper collision: '{wrapper_name}' already exists for group '{conflict.parent.name}'. Skipping generation for group '{group_name}'.")
                 continue
-            if create_bash_wrapper(wrapper_path, venv_path, py_file, args.dry_run):
+            if create_wrapper(wrapper_base, venv_path, py_file, args.dry_run):
                 generated_wrapper_targets[wrapper_name] = py_file
                 try:
-                    rel_path = wrapper_path.relative_to(Path.home())
+                    rel_path = actual_wrapper.relative_to(Path.home())
                     summary_actions["wrappers_generated"].append(f"~/{rel_path}")
                 except ValueError:
-                    summary_actions["wrappers_generated"].append(str(wrapper_path))
+                    summary_actions["wrappers_generated"].append(str(actual_wrapper))
             else:
                 encountered_errors = True
 
