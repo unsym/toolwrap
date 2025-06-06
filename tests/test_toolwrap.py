@@ -101,6 +101,14 @@ def test_create_bash_wrapper(tmp_path):
     assert mode & stat.S_IRUSR
 
 
+def test_path_is_relative_helper():
+    """Piecewise path comparison works without Path.is_relative_to."""
+    from pathlib import Path
+
+    assert toolwrap._path_is_relative_to(Path("/usr/lib/foo.py"), Path("/usr/lib"))
+    assert not toolwrap._path_is_relative_to(Path("/usr/lib64/foo.py"), Path("/usr/lib"))
+
+
 def test_install_dependencies_records_pip_upgrade(monkeypatch, tmp_path):
     """Successful install_dependencies records pip upgrade in summary."""
     venv = tmp_path / "venv"
@@ -123,4 +131,3 @@ def test_install_dependencies_records_pip_upgrade(monkeypatch, tmp_path):
     summary = {"pip_upgraded": []}
     assert toolwrap.install_dependencies(venv, req, False, summary, "grp")
     assert summary["pip_upgraded"] == ["grp"]
-

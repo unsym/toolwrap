@@ -171,6 +171,26 @@ def find_python_executable(version_str: Optional[str]) -> Optional[Path]:
     return None
 
 
+def _path_is_relative_to(path: Path, base: Path) -> bool:
+    """Compatibility shim for :meth:`Path.is_relative_to`."""
+    if hasattr(Path, "is_relative_to"):
+        try:
+            return path.is_relative_to(base)
+        except ValueError:
+            return False
+
+    try:
+        path_parts = path.resolve().parts
+        base_parts = base.resolve().parts
+    except Exception:
+        return False
+
+    if len(path_parts) < len(base_parts):
+        return False
+
+    return path_parts[: len(base_parts)] == base_parts
+
+
 def is_standard_library(module_name: str) -> bool:
     """Checks if a module name belongs to the Python standard library."""
     if not module_name or '.' in module_name:
@@ -196,10 +216,7 @@ def is_standard_library(module_name: str) -> bool:
             if stdlib_path_str:
                 stdlib_path = Path(stdlib_path_str).resolve()
                 try:
-                    if origin_path.is_relative_to(stdlib_path):
-                        return True
-                except AttributeError:
-                    if os.path.commonprefix([str(origin_path), str(stdlib_path)]) == str(stdlib_path):
+                    if _path_is_relative_to(origin_path, stdlib_path):
                         return True
                 except ValueError:
                     pass
