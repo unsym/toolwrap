@@ -509,6 +509,25 @@ def main() -> None:
             logging.error(error_msg)
             raise ToolwrapError(error_msg)
 
+    # Remove existing virtual environments when --recreate-all is specified
+    if args.recreate_all:
+        if args.include_groups:
+            groups_to_clean = {
+                name.strip() for name in args.include_groups.split(',') if name.strip()
+            }
+            subdirs = [venv_root_dir / name for name in groups_to_clean]
+        else:
+            subdirs = [d for d in venv_root_dir.iterdir() if d.is_dir()]
+
+        for sub in subdirs:
+            if sub.is_dir():
+                logging.debug(f"Recreate-all: Removing existing venv at {sub}")
+                if not args.dry_run:
+                    try:
+                        shutil.rmtree(sub)
+                    except OSError as e:
+                        logging.error(f"Failed to remove venv at {sub}: {e}")
+
     # Identify group folders
     all_subdirs = [d for d in source_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
     target_groups: List[Path] = []

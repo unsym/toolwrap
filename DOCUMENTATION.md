@@ -126,8 +126,8 @@ Available arguments:
   - `suggest` – Prints any missing packages that should be added.  
   - `append` – Automatically appends missing package names (without versions) to `requirements.txt`.
 
-- **`--recreate-all`**  
-  **Description:** If specified, removes and recreates all virtual environments before reinstalling packages.  
+- **`--recreate-all`**
+  **Description:** Remove existing virtual environment folders before creation. If `--include-groups` is **not** supplied, every subdirectory under `--venv-root` is deleted. When specific groups are listed via `--include-groups`, only those matching subdirectories are removed.
   **Default:** Not set (reuses existing environments if present)
 
 - **`--dry-run`**  
@@ -206,7 +206,7 @@ The tool will:
    - **Before generating bash wrappers, the tool performs a pre-check for duplicate wrapper names across all groups. If duplicate names are detected, no wrappers for those names will be generated in any group, and a warning is logged instructing the user to manually rename the conflicting source .py files to ensure unique wrapper names.**  
 
 6. **Cleanup Unused Environments (Optional):**
-   - *If `--recreate-all` is given, existing environments under `--venv-root` for the included groups are removed before being recreated.*
+   - *With `--recreate-all`, toolwrap deletes old environment folders before setup. When `--include-groups` is omitted, **all** subdirectories in `--venv-root` are purged. If specific groups are supplied, only those matching folders are removed.*
 
 7. **Logging:**
    - Every action (creation, updates, errors) is appended to `--venv-root/toolwrap_envs.log` with a timestamp, group name, and short description (e.g., "CREATED ENV," "INSTALLED PACKAGES," "WARNING: Missing version fallback").
