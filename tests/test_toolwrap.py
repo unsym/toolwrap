@@ -65,6 +65,16 @@ git+https://example.com/repo.git#egg=bar
     assert packages == {"foo", "bar", "baz"}
 
 
+def test_parse_requirements_cycle(tmp_path):
+    """Circular -r references do not cause infinite recursion."""
+    a = tmp_path / "A.txt"
+    b = tmp_path / "B.txt"
+    a.write_text("pkg_a\n-r B.txt\n")
+    b.write_text("pkg_b\n-r A.txt\n")
+    packages = toolwrap.parse_requirements(a)
+    assert packages == {"pkg_a", "pkg_b"}
+
+
 def test_find_third_party_imports(tmp_path):
     """Standard library imports ignored; third-party detected (docs lines 192-194)."""
     script = tmp_path / "script.py"
