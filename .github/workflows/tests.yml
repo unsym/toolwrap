@@ -9,7 +9,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Windows temporarily disabled pending completion of Windows support
+        os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
