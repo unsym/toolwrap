@@ -389,8 +389,18 @@ def create_virtualenv(python_exec: Path, venv_path: Path, dry_run: bool) -> bool
         return False
 
 
-def install_dependencies(venv_path: Path, req_file: Path, dry_run: bool) -> bool:
-    """Upgrades pip and installs dependencies from the requirements file."""
+def install_dependencies(
+    venv_path: Path,
+    req_file: Path,
+    dry_run: bool,
+    summary_actions: Optional[dict],
+    group_name: str,
+) -> bool:
+    """Upgrades pip and installs dependencies from the requirements file.
+
+    Records successful pip upgrades in ``summary_actions['pip_upgraded']`` when
+    provided.
+    """
     venv_bin_dir = venv_path / ('Scripts' if platform.system() == "Windows" else 'bin')
     venv_pip = venv_bin_dir / ('pip.exe' if platform.system() == "Windows" else 'pip')
 
@@ -401,6 +411,8 @@ def install_dependencies(venv_path: Path, req_file: Path, dry_run: bool) -> bool
     if not success:
         logging.error(f"Failed to upgrade pip in venv at {venv_path}.")
         return False
+    if summary_actions is not None:
+        summary_actions.setdefault("pip_upgraded", []).append(group_name)
 
     if req_file.is_file():
         deps = parse_requirements(req_file)
@@ -646,7 +658,13 @@ def main() -> None:
                 logging.info("No missing third-party imports detected.")
 
         # Upgrade pip before installing dependencies
-        if not install_dependencies(venv_path, requirements_file, args.dry_run):
+        if not install_dependencies(
+            venv_path,
+            requirements_file,
+            args.dry_run,
+            summary_actions,
+            group_name,
+        ):
             logging.error(f"Dependency installation failed for group '{group_name}'.")
             encountered_errors = True
         else:
@@ -692,7 +710,9 @@ def main() -> None:
     if summary_actions["venvs_reused"]:
         logging.info(f"Existing venvs reused: {', '.join(sorted(summary_actions['venvs_reused']))}")
     if summary_actions["pip_upgraded"]:
-        logging.info(f"Pip upgraded in venvs for: {', '.join(sorted(summary_actions['pip_upgraded']))}")
+        logging.info("Pip upgraded in venvs for:")
+        for s in sorted(summary_actions["pip_upgraded"]):
+            logging.info(f"  - {s}")
     if summary_actions["deps_installed"]:
         logging.info(f"Dependencies installed for: {', '.join(sorted(summary_actions['deps_installed']))}")
     if summary_actions["deps_suggested"]:
