@@ -100,3 +100,11 @@ def test_create_bash_wrapper(tmp_path):
     assert mode & stat.S_IXUSR
     assert mode & stat.S_IRUSR
 
+
+def test_path_is_relative_helper():
+    """Piecewise path comparison works without Path.is_relative_to."""
+    from pathlib import Path
+
+    assert toolwrap._path_is_relative_to(Path("/usr/lib/foo.py"), Path("/usr/lib"))
+    assert not toolwrap._path_is_relative_to(Path("/usr/lib64/foo.py"), Path("/usr/lib"))
+
