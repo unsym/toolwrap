@@ -42,7 +42,7 @@ def test_find_python_executable_py(monkeypatch):
     orig_exists = Path.exists
 
     def fake_exists(path):
-        if str(path) == "/custom/python":
+        if Path(path).as_posix() == "/custom/python":
             return True
         return orig_exists(path)
 
@@ -87,6 +87,7 @@ def test_check_duplicate_wrappers(tmp_path):
     assert collisions == {"dup": ["g1", "g2"]}
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="POSIX-specific test")
 def test_create_bash_wrapper(tmp_path):
     """Wrapper content and permissions (docs lines 200-205)."""
     wrapper = tmp_path / "run.sh"
