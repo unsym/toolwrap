@@ -100,3 +100,27 @@ def test_create_bash_wrapper(tmp_path):
     assert mode & stat.S_IXUSR
     assert mode & stat.S_IRUSR
 
+
+def test_install_dependencies_records_pip_upgrade(monkeypatch, tmp_path):
+    """Successful install_dependencies records pip upgrade in summary."""
+    venv = tmp_path / "venv"
+    bin_dir = venv / ("Scripts" if toolwrap.platform.system() == "Windows" else "bin")
+    bin_dir.mkdir(parents=True)
+    pip_path = bin_dir / ("pip.exe" if toolwrap.platform.system() == "Windows" else "pip")
+    pip_path.write_text("pip")
+
+    req = tmp_path / "req.txt"
+    req.write_text("requests\n")
+
+    calls = []
+
+    def fake_run(cmd, cwd=None, env=None, dry_run=False):
+        calls.append(cmd)
+        return True, "", ""
+
+    monkeypatch.setattr(toolwrap, "run_command", fake_run)
+
+    summary = {"pip_upgraded": []}
+    assert toolwrap.install_dependencies(venv, req, False, summary, "grp")
+    assert summary["pip_upgraded"] == ["grp"]
+
