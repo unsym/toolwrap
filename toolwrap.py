@@ -154,6 +154,19 @@ def find_python_executable(version_str: Optional[str]) -> Optional[Path]:
             logging.debug(f"Found Python executable for '{version_str}' via '{name}': {executable_path}")
             return Path(executable_path)
 
+    # Try Windows 'py' launcher
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        cmd = [py_launcher, f"-{version_str}", "-c", "import sys;print(sys.executable)"]
+        success, stdout, _ = run_command(cmd)
+        if success and stdout.strip():
+            exec_path = Path(stdout.strip())
+            if exec_path.exists():
+                logging.debug(
+                    f"Found Python executable for '{version_str}' via py launcher: {exec_path}"
+                )
+                return exec_path
+
     logging.warning(f"Could not find Python executable for version '{version_str}' in PATH.")
     return None
 
@@ -237,21 +250,38 @@ def parse_requirements(req_file: Path) -> Set[str]:
     Parses a requirements.txt file, returning a set of base package names.
     Ignores comments and blank lines.
     """
-    packages = set()
-    if not req_file.is_file():
-        return packages
-    try:
-        for line in req_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            match = re.match(r'^([a-zA-Z0-9_.-]+)', line)
-            if match:
-                packages.add(match.group(1).lower())
-            else:
-                logging.warning(f"Could not parse package from line: '{line}' in {req_file}")
-    except Exception as e:
-        logging.error(f"Error reading {req_file}: {e}")
+    packages: Set[str] = set()
+    visited: Set[Path] = set()
+
+    def _parse(path: Path) -> None:
+        if path in visited or not path.is_file():
+            return
+        visited.add(path)
+        try:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("-r"):
+                    nested = (path.parent / line[2:].strip()).resolve()
+                    _parse(nested)
+                    continue
+                egg_match = re.search(r"#egg=([A-Za-z0-9_.-]+)", line)
+                if egg_match:
+                    packages.add(egg_match.group(1).lower())
+                    continue
+                base_match = re.match(r"([A-Za-z0-9_.-]+)", line)
+                if base_match:
+                    base = base_match.group(1).split("[")[0]
+                    packages.add(base.lower())
+                else:
+                    logging.warning(
+                        f"Could not parse package from line: '{line}' in {path}"
+                    )
+        except Exception as e:
+            logging.error(f"Error reading {path}: {e}")
+
+    _parse(req_file)
     return packages
 
 
