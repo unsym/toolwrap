@@ -59,7 +59,7 @@ example_tools/
 
 Where:
 - `math_tools/` and `media_tools/` are group folders.
-- Each `.py` file becomes a standalone command once the script has generated its corresponding wrapper.
+- Each `.py` file becomes a standalone command once Toolwrap has generated its corresponding wrapper.
 - Each group can have its own dependencies and Python version requirements.
 
 ### Additional Notes on Configuration Files
