@@ -287,8 +287,10 @@ def test_python_version_file(monkeypatch, tmp_path):
     def fake_create(py, path, dry):
         assert py == Path("/custom/python")
         path.mkdir(parents=True, exist_ok=True)
-        bin_p = path / "bin"; bin_p.mkdir(parents=True)
-        (bin_p / "python").write_text(""); (bin_p / "pip").write_text("")
+        bin_p = path / ("Scripts" if platform.system() == "Windows" else "bin")
+        bin_p.mkdir(parents=True)
+        (bin_p / ("python.exe" if platform.system() == "Windows" else "python")).write_text("")
+        (bin_p / ("pip.exe" if platform.system() == "Windows" else "pip")).write_text("")
         return True
     monkeypatch.setattr(toolwrap, "find_python_executable", fake_find)
     monkeypatch.setattr(toolwrap, "create_virtualenv", fake_create)
@@ -315,8 +317,10 @@ def test_python_version_fallback(monkeypatch, tmp_path):
     def fake_create(py, path, dry):
         assert py == Path("/fallback")
         path.mkdir(parents=True, exist_ok=True)
-        bin_p = path / "bin"; bin_p.mkdir(parents=True)
-        (bin_p / "python").write_text(""); (bin_p / "pip").write_text("")
+        bin_p = path / ("Scripts" if platform.system() == "Windows" else "bin")
+        bin_p.mkdir(parents=True)
+        (bin_p / ("python.exe" if platform.system() == "Windows" else "python")).write_text("")
+        (bin_p / ("pip.exe" if platform.system() == "Windows" else "pip")).write_text("")
         return True
     monkeypatch.setattr(toolwrap, "find_python_executable", fake_find)
     monkeypatch.setattr(toolwrap, "create_virtualenv", fake_create)
@@ -352,8 +356,10 @@ def test_missing_requirements_append(monkeypatch, tmp_path):
     monkeypatch.setattr(toolwrap, "create_bash_wrapper", lambda *a, **k: True)
     def fake_create(py, path, dry):
         path.mkdir(parents=True, exist_ok=True)
-        bin_p = path / "bin"; bin_p.mkdir(parents=True)
-        (bin_p / "python").write_text(""); (bin_p / "pip").write_text("")
+        bin_p = path / ("Scripts" if platform.system() == "Windows" else "bin")
+        bin_p.mkdir(parents=True)
+        (bin_p / ("python.exe" if platform.system() == "Windows" else "python")).write_text("")
+        (bin_p / ("pip.exe" if platform.system() == "Windows" else "pip")).write_text("")
         return True
     monkeypatch.setattr(toolwrap, "create_virtualenv", fake_create)
     monkeypatch.setattr(toolwrap, "find_python_executable", lambda v: Path(sys.executable))
@@ -371,8 +377,10 @@ def test_include_groups_selective(monkeypatch, tmp_path):
     monkeypatch.setattr(toolwrap, "create_bash_wrapper", lambda *a, **k: True)
     def fake_create(py, path, dry):
         path.mkdir(parents=True, exist_ok=True)
-        bin_p = path / "bin"; bin_p.mkdir(parents=True)
-        (bin_p / "python").write_text(""); (bin_p / "pip").write_text("")
+        bin_p = path / ("Scripts" if platform.system() == "Windows" else "bin")
+        bin_p.mkdir(parents=True)
+        (bin_p / ("python.exe" if platform.system() == "Windows" else "python")).write_text("")
+        (bin_p / ("pip.exe" if platform.system() == "Windows" else "pip")).write_text("")
         return True
     monkeypatch.setattr(toolwrap, "create_virtualenv", fake_create)
     monkeypatch.setattr(toolwrap, "find_python_executable", lambda v: Path(sys.executable))
