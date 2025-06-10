@@ -260,8 +260,9 @@ def test_create_virtualenv_invokes_run(monkeypatch, tmp_path):
         calls.append(cmd)
         return True, "", ""
     monkeypatch.setattr(toolwrap, "run_command", fake_run)
-    assert toolwrap.create_virtualenv(Path("/py"), tmp_path / "v", False)
-    assert calls[0][:3] == ["/py", "-m", "venv"]
+    py_exec = Path("/py")
+    assert toolwrap.create_virtualenv(py_exec, tmp_path / "v", False)
+    assert calls[0][:3] == [str(py_exec), "-m", "venv"]
 
 def test_create_virtualenv_dry_run(monkeypatch, tmp_path):
     called = False
