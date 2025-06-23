@@ -108,12 +108,12 @@ Available arguments:
   **Default:** Current directory (`.`)
 
   - **`--bin`**
-    **Description:** Directory where the generated wrapper scripts will be placed. Each script becomes an executable command here. Default is the `bin/` folder under the source directory.
+    **Description:** Directory where the generated wrapper scripts will be placed. Each script becomes an executable command here. If the path is relative, it is resolved against the current working directory. Default is the `bin/` folder in the current directory.
     **Default:** `bin/`
 
 - **`--venv-root`**
-  **Description:** Directory under which virtual environments are created. Default is the `.venv` folder inside the bin directory.
-  **Default:** `<source>/bin/.venv` (if --bin is not overridden)
+  **Description:** Directory under which virtual environments are created. Default is the `.venv` folder inside the bin directory. Relative paths are resolved against the current working directory.
+  **Default:** `<bin>/.venv`
 
 - **`--python-version`**  
   **Description:** Fallback Python version to use if a group does not specify one via `python_version.txt`, or if the specified version is unavailable on the system.  

@@ -530,9 +530,9 @@ def main() -> None:
     parser.add_argument("--source", type=Path, default=Path("."),
                         help="Root directory containing tool groups (subfolders).")
     parser.add_argument("--bin", type=Path, default=Path("bin"),
-                        help="Directory to place generated bash wrapper scripts. Default is the 'bin' folder under the source directory.")
+                        help="Directory to place generated bash wrapper scripts. Relative paths are resolved against the current working directory. Default is the 'bin' folder in the current directory.")
     parser.add_argument("--venv-root", type=Path, default=None,
-                        help="Directory under which virtual environments are created. Default is the '.venv' folder inside the bin directory.")
+                        help="Directory under which virtual environments are created. Default is the '.venv' folder inside the bin directory. Relative paths are resolved against the current working directory.")
     parser.add_argument("--python-version", type=str, default=None,
                         help="Fallback Python version (e.g., '3.9') if not specified in group.")
     parser.add_argument("--missing-requirements", choices=["suggest", "append"], default=None,
@@ -551,14 +551,14 @@ def main() -> None:
 
     source_dir = args.source.expanduser().resolve()
     if not args.bin.is_absolute():
-        bin_dir = (source_dir / args.bin).resolve()
+        bin_dir = (Path.cwd() / args.bin).resolve()
     else:
         bin_dir = args.bin.resolve()
 
     if args.venv_root is None:
         venv_root_dir = (bin_dir / ".venv").resolve()
     elif not args.venv_root.is_absolute():
-        venv_root_dir = (source_dir / args.venv_root).resolve()
+        venv_root_dir = (Path.cwd() / args.venv_root).resolve()
     else:
         venv_root_dir = args.venv_root.resolve()
     log_file = venv_root_dir / LOG_FILENAME
